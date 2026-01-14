@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-playfair: 'Times New Roman', serif;
+  --font-lato: 'Arial', sans-serif;
+}
