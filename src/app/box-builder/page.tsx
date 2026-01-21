@@ -9,7 +9,7 @@ import {
   CreditCard, Truck, Info, ChevronLeft, ChevronRight, Minus, Plus 
 } from 'lucide-react';
 
-// --- Utility: Simple Jalaali Converter (Embedded to avoid external deps) ---
+// --- Utility: Simple Jalaali Converter ---
 const jalaali = {
   gregorianToJalali: (gy: number, gm: number, gd: number) => {
     const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -56,7 +56,7 @@ export default function BoxBuilder() {
   const [lang, setLang] = useState('EN');
   
   // Data States
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null); // Gregorian Date Object
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [subscription, setSubscription] = useState(1);
   const [isEco, setIsEco] = useState(false);
   
@@ -152,9 +152,6 @@ export default function BoxBuilder() {
       if (hasTampon) total += (tamponCount * 5);
       total += (extras.chocolate * 80) + (extras.tea * 60) + (extras.heatPatch * 40) + (extras.hotWaterBottle * 150);
       
-      // Pad extra cost if exceeding 15 total (Optional logic, removing for simplicity as per prompt instructions to keep base price logic mostly)
-      // Assuming base includes 15 pads. 
-      
       total = total * subscription;
       if (subscription === 3) total = total * 0.95;
       if (subscription === 6) total = total * 0.90;
@@ -165,8 +162,6 @@ export default function BoxBuilder() {
       if (!selectedDate) return { next: '-', ship: '-' };
       const nextP = new Date(selectedDate);
       nextP.setDate(selectedDate.getDate() + 28);
-      
-      // Shipping 5 days before
       const shipD = new Date(nextP);
       shipD.setDate(nextP.getDate() - 5);
 
@@ -184,13 +179,68 @@ export default function BoxBuilder() {
       };
   };
 
-  // --- Custom Calendar Logic ---
+  // --- Checkout / Payment Logic (Connected to /api/checkout) ---
+  const handlePayment = async () => {
+      // 1. Validation
+      if (!formData.name || !formData.phone || !formData.address) {
+          alert(lang === 'FA' ? "لطفاً تمام فیلدها (نام، تلفن، آدرس) را پر کنید." : "Please fill in all fields (Name, Phone, Address).");
+          return;
+      }
+
+      // 2. Generate Tracking Code
+      const randomCode = "VELA-" + Math.floor(100000 + Math.random() * 900000);
+      setTrackingCode(randomCode);
+
+      // 3. Format Extras
+      let extrasList = [];
+      if (extras.chocolate > 0) extrasList.push(`شکلات (${extras.chocolate})`);
+      if (extras.tea > 0) extrasList.push(`دمنوش (${extras.tea})`);
+      if (extras.heatPatch > 0) extrasList.push(`پچ حرارتی (${extras.heatPatch})`);
+      if (extras.hotWaterBottle > 0) extrasList.push(`کیسه آب گرم (${extras.hotWaterBottle})`);
+      const extrasText = extrasList.length > 0 ? extrasList.join('، ') : 'ندارد';
+
+      // 4. Prepare Payload
+      const payload = {
+          trackingCode: randomCode,
+          formData: formData,
+          totalPrice: calculateTotal(),
+          orderDetails: {
+              boxName: selectedBoxType.name,
+              subscription: subscription,
+              pads: `${dayPads} روزانه / ${nightPads} شبانه (${padBrand})`,
+              tampons: hasTampon ? `${tamponCount} عدد (${tamponBrand})` : 'ندارد',
+              extras: extrasText
+          }
+      };
+
+      try {
+          console.log("🚀 Sending Order...", payload);
+          
+          // Call the NEW /api/checkout route
+          const res = await fetch('/api/checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+          });
+
+          if (res.ok) {
+              setStep(4);
+          } else {
+              const errData = await res.json();
+              console.error("Server Response Error:", errData);
+              alert(lang === 'FA' ? "خطا در ثبت سفارش. لطفاً دوباره تلاش کنید." : "Order failed. Please try again.");
+          }
+      } catch (error) {
+          console.error("Network Error:", error);
+          alert(lang === 'FA' ? "خطای شبکه! اتصال اینترنت را بررسی کنید." : "Network Error. Check your connection.");
+      }
+  };
+
+  // --- Custom Calendar UI ---
   const [currentCalDate, setCurrentCalDate] = useState(new Date());
 
   const renderCalendar = () => {
       const isJalali = lang === 'FA';
-      const today = new Date();
-      
       let year, month, daysInMonth, startDayOfWeek;
       let monthName = "";
 
@@ -199,13 +249,10 @@ export default function BoxBuilder() {
           year = jDate.jy;
           month = jDate.jm;
           monthName = jalaali.monthNames[month - 1];
-          // Simple logic for days in month (approximate for UI render)
-          daysInMonth = month <= 6 ? 31 : (month < 12 ? 30 : 29); // Leap year omitted for simplicity in view
-          
-          // Determine start day of week for the 1st of this Jalali month
+          daysInMonth = month <= 6 ? 31 : (month < 12 ? 30 : 29); 
           const gFirstOfMonth = jalaali.jalaliToGregorian(year, month, 1);
           const d = new Date(gFirstOfMonth.gy, gFirstOfMonth.gm - 1, gFirstOfMonth.gd);
-          startDayOfWeek = (d.getDay() + 1) % 7; // Adjust for Saturday start (Jalali)
+          startDayOfWeek = (d.getDay() + 1) % 7; 
       } else {
           year = currentCalDate.getFullYear();
           month = currentCalDate.getMonth();
@@ -225,30 +272,19 @@ export default function BoxBuilder() {
           } else {
               dateObj = new Date(year, month, d);
           }
-          
           const isSelected = selectedDate && dateObj.toDateString() === selectedDate.toDateString();
-          
           days.push(
               <button 
-                  key={d}
-                  onClick={() => setSelectedDate(dateObj)}
-                  className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold transition-all
-                      ${isSelected ? 'bg-[#D4AF37] text-white shadow-lg scale-110' : 'hover:bg-gray-100 text-[#1A2A3A]'}
-                  `}
-              >
-                  {d}
-              </button>
+                  key={d} onClick={() => setSelectedDate(dateObj)}
+                  className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold transition-all ${isSelected ? 'bg-[#D4AF37] text-white shadow-lg scale-110' : 'hover:bg-gray-100 text-[#1A2A3A]'}`}
+              >{d}</button>
           );
       }
 
       const changeMonth = (offset: number) => {
           const newDate = new Date(currentCalDate);
-          if (isJalali) {
-             // Simply add days to shift approx month
-             newDate.setDate(newDate.getDate() + (offset * 30));
-          } else {
-             newDate.setMonth(newDate.getMonth() + offset);
-          }
+          if (isJalali) { newDate.setDate(newDate.getDate() + (offset * 30)); } 
+          else { newDate.setMonth(newDate.getMonth() + offset); }
           setCurrentCalDate(newDate);
       };
 
@@ -265,9 +301,7 @@ export default function BoxBuilder() {
                       : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <span key={d} className="text-xs text-gray-400 font-bold">{d}</span>)
                   }
               </div>
-              <div className="grid grid-cols-7 gap-1" dir={isJalali ? 'rtl' : 'ltr'}>
-                  {days}
-              </div>
+              <div className="grid grid-cols-7 gap-1" dir={isJalali ? 'rtl' : 'ltr'}>{days}</div>
           </div>
       );
   };
@@ -290,9 +324,7 @@ export default function BoxBuilder() {
                     <h2 className="text-3xl font-serif font-bold text-[#1A2A3A] mb-2">{t.step1Title}</h2>
                     <p className="text-gray-500">{t.step1Desc}</p>
                 </div>
-
                 {renderCalendar()}
-
                 {selectedDate && (
                     <div className="mt-8 bg-white p-6 rounded-2xl shadow-md border-l-4 border-[#D4AF37] flex flex-col gap-3 animate-fade-in-up">
                         <div className="flex justify-between">
@@ -305,12 +337,7 @@ export default function BoxBuilder() {
                         </div>
                     </div>
                 )}
-
-                <button 
-                    onClick={() => setStep(2)} 
-                    disabled={!selectedDate}
-                    className={`w-full mt-8 py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2 ${selectedDate ? 'bg-[#1A2A3A] text-white hover:bg-[#D4AF37] shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                >
+                <button onClick={() => setStep(2)} disabled={!selectedDate} className={`w-full mt-8 py-4 rounded-xl font-bold text-lg transition flex items-center justify-center gap-2 ${selectedDate ? 'bg-[#1A2A3A] text-white hover:bg-[#D4AF37] shadow-lg' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
                     {t.next} {isRTL ? <ArrowLeft/> : <ArrowRight/>}
                 </button>
             </div>
@@ -341,36 +368,25 @@ export default function BoxBuilder() {
                     {isEco && <Check className="text-[#D4AF37]" size={28}/>}
                 </div>
 
-                {/* Pads Config (No Slider - New Buttons) */}
+                {/* Pads Config */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-6">
                     <h4 className="font-bold text-[#1A2A3A] mb-4 flex items-center gap-2"><Package size={18}/> {t.padConfig}</h4>
-                    
-                    {/* Brand */}
                     <div className="flex gap-2 mb-6">
                         {['Kotex', 'Orkid', 'Molped'].map(b => (
                             <button key={b} onClick={() => setPadBrand(b)} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${padBrand === b ? 'bg-[#1A2A3A] text-white border-[#1A2A3A]' : 'bg-white text-gray-500 border-gray-200'}`}>{b}</button>
                         ))}
                     </div>
-
-                    {/* Day / Night Counters */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-center bg-[#F9F7F2] p-4 rounded-xl">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-500 shadow-sm"><Sun size={20}/></div>
-                                <span className="font-bold text-[#1A2A3A] text-sm">{t.day}</span>
-                            </div>
+                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-500 shadow-sm"><Sun size={20}/></div><span className="font-bold text-[#1A2A3A] text-sm">{t.day}</span></div>
                             <div className="flex items-center gap-3">
                                 <button onClick={() => setDayPads(Math.max(0, dayPads - 1))} className="w-8 h-8 rounded-full bg-white border flex items-center justify-center hover:bg-gray-100"><Minus size={16}/></button>
                                 <span className="font-bold w-6 text-center text-lg">{dayPads}</span>
                                 <button onClick={() => setDayPads(dayPads + 1)} className="w-8 h-8 rounded-full bg-[#1A2A3A] text-white flex items-center justify-center hover:bg-[#D4AF37]"><Plus size={16}/></button>
                             </div>
                         </div>
-
                         <div className="flex justify-between items-center bg-[#1A2A3A]/5 p-4 rounded-xl">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-[#1A2A3A] rounded-full flex items-center justify-center text-indigo-300 shadow-sm"><Moon size={20}/></div>
-                                <span className="font-bold text-[#1A2A3A] text-sm">{t.night}</span>
-                            </div>
+                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#1A2A3A] rounded-full flex items-center justify-center text-indigo-300 shadow-sm"><Moon size={20}/></div><span className="font-bold text-[#1A2A3A] text-sm">{t.night}</span></div>
                             <div className="flex items-center gap-3">
                                 <button onClick={() => setNightPads(Math.max(0, nightPads - 1))} className="w-8 h-8 rounded-full bg-white border flex items-center justify-center hover:bg-gray-100"><Minus size={16}/></button>
                                 <span className="font-bold w-6 text-center text-lg">{nightPads}</span>
@@ -430,7 +446,6 @@ export default function BoxBuilder() {
         {step === 3 && (
             <div className="animate-fade-in">
                 <h2 className="text-3xl font-serif font-bold text-[#1A2A3A] mb-8 text-center">{t.step3Title}</h2>
-                
                 <div className="bg-white p-6 rounded-[2rem] shadow-xl mb-8">
                     <h3 className="font-bold mb-4 flex items-center gap-2"><Info size={18}/> {t.reviewOrder}</h3>
                     <div className="space-y-3 text-sm text-gray-600">
@@ -439,12 +454,11 @@ export default function BoxBuilder() {
                         <div className="flex justify-between"><span>Total</span> <span className="font-bold text-[#D4AF37] text-lg">{calculateTotal()} {t.currency}</span></div>
                     </div>
                 </div>
-
                 <div className="space-y-4">
                     <input type="text" placeholder={t.formName} className="w-full p-4 rounded-xl border focus:border-[#D4AF37] outline-none" onChange={(e) => setFormData({...formData, name: e.target.value})}/>
                     <input type="tel" placeholder={t.formPhone} className="w-full p-4 rounded-xl border focus:border-[#D4AF37] outline-none" onChange={(e) => setFormData({...formData, phone: e.target.value})}/>
                     <textarea placeholder={t.formAddr} className="w-full p-4 rounded-xl border focus:border-[#D4AF37] outline-none" rows={3} onChange={(e) => setFormData({...formData, address: e.target.value})}/>
-                    <button onClick={() => { setTrackingCode("VELA-" + Math.floor(Math.random()*900000)); setStep(4); }} className="w-full bg-[#1A2A3A] text-white py-4 rounded-xl font-bold hover:bg-[#D4AF37] transition shadow-lg mt-4">{t.confirm}</button>
+                    <button onClick={handlePayment} className="w-full bg-[#1A2A3A] text-white py-4 rounded-xl font-bold hover:bg-[#D4AF37] transition shadow-lg mt-4">{t.confirm}</button>
                 </div>
             </div>
         )}
