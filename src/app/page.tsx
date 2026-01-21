@@ -3,13 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { ArrowRight, Gift, Check, Star, MapPin, Phone, Mail, FileText, Clock, ShieldCheck, Heart } from "lucide-react";
+import { ArrowRight, Gift, Clock, ShieldCheck, Heart } from "lucide-react";
 
 export default function Home() {
-  // مدیریت زبان
   const [lang, setLang] = useState('EN');
 
-  // دیکشنری ترجمه‌ها
   const content: any = {
     EN: {
       productsTitle: "VELA Packages",
@@ -30,11 +28,6 @@ export default function Home() {
       heroSub: "We don't stop periods, but we change the experience. Personalized organic care delivered to your door.",
       btnStart: "Start Building",
       btnGift: "Gift to Friend",
-
-      contactTitle: "Contact Us",
-      locationTitle: "Headquarters",
-      legalTitle: "Legal Info",
-      rights: "All rights reserved © 2026"
     },
     FA: {
       productsTitle: "پکیج‌های VELA",
@@ -55,11 +48,6 @@ export default function Home() {
       heroSub: "ما پریود را متوقف نمی‌کنیم، اما تجربه آن را تغییر می‌دهیم. پکیج‌های شخصی‌سازی شده و ارگانیک.",
       btnStart: "ساخت باکس شخصی",
       btnGift: "هدیه به دوست",
-
-      contactTitle: "تماس با ما",
-      locationTitle: "دفتر مرکزی",
-      legalTitle: "اطلاعات حقوقی",
-      rights: "تمامی حقوق محفوظ است © ۲۰۲۶"
     },
     TR: {
       productsTitle: "VELA Paketleri",
@@ -80,11 +68,6 @@ export default function Home() {
       heroSub: "Regl dönemini durdurmuyoruz, ama deneyimi değiştiriyoruz. Kapınıza gelen kişiselleştirilmiş bakım.",
       btnStart: "Paketini Oluştur",
       btnGift: "Arkadaşına Hediye Et",
-
-      contactTitle: "İletişim",
-      locationTitle: "Merkez Ofis",
-      legalTitle: "Yasal Bilgiler",
-      rights: "Tüm hakları saklıdır © 2026"
     },
     RU: {
       productsTitle: "Пакеты VELA",
@@ -105,20 +88,13 @@ export default function Home() {
       heroSub: "Мы меняем ваше представление о критических днях. Персональная забота с доставкой.",
       btnStart: "Собрать бокс",
       btnGift: "Подарить подруге",
-
-      contactTitle: "Контакты",
-      locationTitle: "Главный офис",
-      legalTitle: "Юр. информация",
-      rights: "Все права защищены © 2026"
     }
   };
 
   useEffect(() => {
-    // 1. خواندن زبان اولیه
     const savedLang = localStorage.getItem('vela-lang');
     if (savedLang) setLang(savedLang);
 
-    // 2. گوش دادن به تغییر زبان در هدر
     const handleLangChange = () => {
        const newLang = localStorage.getItem('vela-lang');
        if (newLang) setLang(newLang);
@@ -129,12 +105,12 @@ export default function Home() {
   }, []);
 
   const t = content[lang] || content['EN'];
-  const isRTL = lang === 'FA'; // فقط فارسی راست‌چین است
+  const isRTL = lang === 'FA';
 
   return (
     <div className="flex flex-col min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
       
-      {/* 1. Products Section (حالا در بالا قرار گرفت) */}
+      {/* 1. Products Section (محصولات بالا) */}
       <section className="py-24 px-6 bg-[#F9F7F2] pt-32">
         <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
@@ -147,7 +123,6 @@ export default function Home() {
                 {/* ECO Box */}
                 <div className="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition duration-500 group border border-gray-100 flex flex-col h-full">
                     <div className="relative w-full h-64 mb-6 rounded-2xl overflow-hidden bg-gray-100">
-                        {/* مطمئن شوید عکس در public/images/essential.jpg است */}
                         <Image src="/images/essential.jpg" alt="Essential" fill className="object-cover group-hover:scale-105 transition duration-700" />
                     </div>
                     <h3 className="text-2xl font-serif font-bold text-[#1A2A3A] mb-2 text-center">{t.ecoName}</h3>
@@ -199,7 +174,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. Hero / Start Section (به پایین منتقل شد) */}
+      {/* 2. Hero Section (بخش شروع پایین) */}
       <section className="relative px-6 py-20 bg-white text-center max-w-5xl mx-auto flex flex-col items-center border-t border-gray-100">
         <div className="inline-block bg-[#D4AF37]/10 text-[#D4AF37] px-6 py-2 rounded-full text-sm font-semibold mb-8 border border-[#D4AF37]/20">
           {t.heroBadge}
@@ -220,31 +195,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3. Contact & Info Section */}
-      <section className="bg-white border-t border-gray-100 py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 text-center md:text-left">
-                <div className="flex flex-col items-center md:items-start">
-                    <div className="w-12 h-12 bg-[#F9F7F2] rounded-full flex items-center justify-center text-[#1A2A3A] mb-4"><Phone size={24}/></div>
-                    <h4 className="text-lg font-bold text-[#1A2A3A] mb-2">{t.contactTitle}</h4>
-                    <p className="text-gray-500" dir="ltr">+90 545 199 39 96</p>
-                    <div className="flex items-center gap-2 mt-2 text-gray-500"><Mail size={16}/><span>support@velafemtech.com</span></div>
-                </div>
-                <div className="flex flex-col items-center md:items-start">
-                    <div className="w-12 h-12 bg-[#F9F7F2] rounded-full flex items-center justify-center text-[#1A2A3A] mb-4"><MapPin size={24}/></div>
-                    <h4 className="text-lg font-bold text-[#1A2A3A] mb-2">{t.locationTitle}</h4>
-                    <p className="text-gray-500">Istanbul, Turkey</p>
-                    <p className="text-gray-500 text-sm mt-1">Maslak, Büyükdere Cd. No:23</p>
-                </div>
-                <div className="flex flex-col items-center md:items-start">
-                    <div className="w-12 h-12 bg-[#F9F7F2] rounded-full flex items-center justify-center text-[#1A2A3A] mb-4"><FileText size={24}/></div>
-                    <h4 className="text-lg font-bold text-[#1A2A3A] mb-2">{t.legalTitle}</h4>
-                    <p className="text-gray-500">VELA FemTech Inc.</p>
-                    <p className="text-[#D4AF37] text-sm mt-2 font-medium">{t.rights}</p>
-                </div>
-            </div>
-        </div>
-      </section>
+      {/* بخش تماس حذف شد چون Footer اصلی در layout برگشت */}
 
     </div>
   );
