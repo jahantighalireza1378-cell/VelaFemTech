@@ -10,7 +10,7 @@ export default function ProductsPage() {
   
   // --- Shopping Cart State ---
   const [cart, setCart] = useState<{ [key: string]: number }>({});
-  const [isCheckout, setIsCheckout] = useState(false); // حالت پرداخت
+  const [isCheckout, setIsCheckout] = useState(false);
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', zip: '' });
   const [isSuccess, setIsSuccess] = useState(false);
   const [trackingCode, setTrackingCode] = useState('');
@@ -20,16 +20,13 @@ export default function ProductsPage() {
       title: "All Products", subtitle: "Shop essentials & gifts directly.",
       secBoxes: "Signature Subscription Boxes", secAddons: "Shop Individual Items",
       boxBtn: "Customize Plan", 
-      // Items
       item1: "Handmade Chocolate", item1Desc: "Belgian dark chocolate.",
       item2: "VELA Herbal Tea", item2Desc: "Relaxing blend.",
       item3: "Heat Patch", item3Desc: "Instant pain relief.",
       item4: "Hot Water Bottle", item4Desc: "Cozy comfort.",
       item5: "Organic Pads (10x)", item5Desc: "100% Cotton.",
       item6: "Tampons (10x)", item6Desc: "Premium protection.",
-      // Cart
       total: "Total:", itemUnit: "items", checkout: "Proceed to Checkout",
-      // Checkout Form
       formTitle: "Quick Checkout", formDesc: "Enter your details to complete the purchase.",
       name: "Full Name", phone: "Phone Number", addr: "Address",
       confirm: "Confirm Order", back: "Back to Shop",
@@ -38,16 +35,14 @@ export default function ProductsPage() {
     },
     FA: {
       title: "فروشگاه محصولات", subtitle: "خرید مستقیم محصولات تکی و هدایا.",
-      secBoxes: "باکس‌های اشتراکی (نیازمند تنظیم)", secAddons: "خرید محصولات تکی",
+      secBoxes: "باکس‌های اشتراکی ولا", secAddons: "خرید محصولات تکی",
       boxBtn: "شخصی‌سازی اشتراک", 
-      
       item1: "شکلات دست‌ساز", item1Desc: "شکلات تلخ بلژیکی.",
       item2: "دمنوش گیاهی", item2Desc: "ترکیب آرامش‌بخش.",
       item3: "پچ حرارتی", item3Desc: "تسکین فوری درد.",
       item4: "کیسه آب گرم", item4Desc: "آرامش کلاسیک.",
       item5: "نوار بهداشتی (۱۰تایی)", item5Desc: "۱۰۰٪ کتان ارگانیک.",
       item6: "تامپون (۱۰تایی)", item6Desc: "محافظت پریمیوم.",
-
       total: "مبلغ قابل پرداخت:", itemUnit: "قلم", checkout: "تکمیل خرید",
       formTitle: "تسویه حساب سریع", formDesc: "برای نهایی کردن خرید مشخصات را وارد کنید.",
       name: "نام و نام خانوادگی", phone: "شماره تماس", addr: "آدرس دقیق پستی",
@@ -97,13 +92,14 @@ export default function ProductsPage() {
     { id: 'bliss', name: 'Bliss Box', price: 1350, img: '/images/bliss.jpg' },
   ];
 
+  // --- Updated Retail Prices (Higher than Subscription Add-ons) ---
   const essentials = [
-    { id: 'pads10', name: t.item5, desc: t.item5Desc, price: 120, img: '/images/pads.jpg' }, 
-    { id: 'tampons10', name: t.item6, desc: t.item6Desc, price: 140, img: '/images/tampons.jpg' }, 
-    { id: 'chocolate', name: t.item1, desc: t.item1Desc, price: 80, img: '/images/chocolate.jpg' },
-    { id: 'tea', name: t.item2, desc: t.item2Desc, price: 60, img: '/images/tea.jpg' },
-    { id: 'patch', name: t.item3, desc: t.item3Desc, price: 40, img: '/images/patch.jpg' },
-    { id: 'bottle', name: t.item4, desc: t.item4Desc, price: 150, img: '/images/bottle.jpg' },
+    { id: 'pads10', name: t.item5, desc: t.item5Desc, price: 290, img: '/images/pads.jpg' }, 
+    { id: 'tampons10', name: t.item6, desc: t.item6Desc, price: 320, img: '/images/tampons.jpg' }, 
+    { id: 'chocolate', name: t.item1, desc: t.item1Desc, price: 220, img: '/images/chocolate.jpg' },
+    { id: 'tea', name: t.item2, desc: t.item2Desc, price: 180, img: '/images/tea.jpg' },
+    { id: 'patch', name: t.item3, desc: t.item3Desc, price: 120, img: '/images/patch.jpg' },
+    { id: 'bottle', name: t.item4, desc: t.item4Desc, price: 580, img: '/images/bottle.jpg' },
   ];
 
   // --- Cart Logic ---
@@ -128,7 +124,7 @@ export default function ProductsPage() {
 
   const cartItemCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
-  // --- Payment Logic (Direct One-Time Purchase) ---
+  // --- Payment Logic ---
   const handleDirectBuy = async () => {
       if (!formData.name || !formData.phone || !formData.address) {
           alert(lang === 'FA' ? "لطفاً تمام فیلدها را پر کنید" : "Please fill all fields");
@@ -138,7 +134,6 @@ export default function ProductsPage() {
       const code = "SHOP-" + Math.floor(100000 + Math.random() * 900000);
       setTrackingCode(code);
 
-      // ساخت لیست اقلام برای تلگرام
       const itemsList = Object.entries(cart).map(([id, count]) => {
           const product = essentials.find(e => e.id === id);
           return `${product?.name} (${count}x)`;
@@ -153,7 +148,7 @@ export default function ProductsPage() {
               subscription: "One-Time",
               pads: "-",
               tampons: "-",
-              extras: itemsList // لیست محصولات انتخابی اینجا می‌رود
+              extras: itemsList
           }
       };
 
@@ -171,7 +166,6 @@ export default function ProductsPage() {
 
   // --- RENDER ---
   
-  // 1. SUCCESS VIEW
   if (isSuccess) {
       return (
         <div className="min-h-screen bg-[#F9F7F2] flex flex-col items-center justify-center text-center p-6 animate-fade-in">
@@ -186,7 +180,6 @@ export default function ProductsPage() {
       );
   }
 
-  // 2. CHECKOUT FORM VIEW
   if (isCheckout) {
       return (
           <div className="min-h-screen bg-[#F9F7F2] py-28 px-4" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -196,7 +189,6 @@ export default function ProductsPage() {
                   <h2 className="text-2xl font-serif font-bold text-[#1A2A3A] mb-2">{t.formTitle}</h2>
                   <p className="text-gray-500 text-sm mb-6">{t.formDesc}</p>
                   
-                  {/* Order Summary */}
                   <div className="bg-gray-50 p-4 rounded-xl mb-6">
                       {Object.entries(cart).map(([id, count]) => {
                           const item = essentials.find(e => e.id === id);
@@ -214,7 +206,6 @@ export default function ProductsPage() {
                       </div>
                   </div>
 
-                  {/* Inputs */}
                   <div className="space-y-4">
                       <input type="text" placeholder={t.name} className="w-full p-4 rounded-xl border bg-[#F9F7F2] focus:border-[#D4AF37] outline-none transition" onChange={e => setFormData({...formData, name: e.target.value})}/>
                       <input type="tel" placeholder={t.phone} className="w-full p-4 rounded-xl border bg-[#F9F7F2] focus:border-[#D4AF37] outline-none transition" onChange={e => setFormData({...formData, phone: e.target.value})}/>
@@ -253,7 +244,7 @@ export default function ProductsPage() {
                             <h3 className="font-bold text-[#1A2A3A]">{box.name}</h3>
                             <p className="text-sm text-[#D4AF37] font-bold">{box.price} {t.currency} / month</p>
                         </div>
-                        <Link href="/box-builder" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-[#1A2A3A] group-hover:bg-[#1A2A3A] group-hover:text-white transition">
+                        <Link href={`/box-builder?type=${box.id}`} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-[#1A2A3A] group-hover:bg-[#1A2A3A] group-hover:text-white transition">
                             <ArrowRight size={18}/>
                         </Link>
                     </div>
@@ -279,7 +270,6 @@ export default function ProductsPage() {
                             <div className="flex justify-between items-center">
                                 <span className="font-bold text-[#1A2A3A]">{item.price} {t.currency}</span>
                                 
-                                {/* Quantity Controls */}
                                 {count === 0 ? (
                                     <button onClick={() => updateCart(item.id, 1)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[#1A2A3A] hover:bg-[#1A2A3A] hover:text-white transition">
                                         <Plus size={18}/>
@@ -298,7 +288,6 @@ export default function ProductsPage() {
             </div>
         </div>
 
-        {/* Sticky Cart Footer */}
         {cartItemCount > 0 && (
             <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-lg bg-[#1A2A3A] text-white p-4 rounded-2xl shadow-2xl z-50 flex justify-between items-center animate-slide-up">
                 <div className="flex items-center gap-3">
