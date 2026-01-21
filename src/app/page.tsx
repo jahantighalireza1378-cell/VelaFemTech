@@ -110,7 +110,7 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
       
-      {/* 1. Products Section (محصولات بالا) */}
+      {/* 1. Products Section */}
       <section className="py-24 px-6 bg-[#F9F7F2] pt-32">
         <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
@@ -130,7 +130,8 @@ export default function Home() {
                     <p className="text-gray-500 mb-6 text-sm text-center leading-relaxed">{t.ecoDesc}</p>
                     <div className="mt-auto pt-6 border-t border-gray-100 text-center">
                         <div className="text-3xl font-bold text-[#1A2A3A] mb-4">380 TL</div>
-                        <Link href="/box-builder" className="block w-full py-3 rounded-xl border-2 border-[#1A2A3A] text-[#1A2A3A] font-bold hover:bg-[#1A2A3A] hover:text-white transition">
+                        {/* لینک اصلاح شده: type=essential */}
+                        <Link href="/box-builder?type=essential" className="block w-full py-3 rounded-xl border-2 border-[#1A2A3A] text-[#1A2A3A] font-bold hover:bg-[#1A2A3A] hover:text-white transition">
                             {t.btnSelect} {t.ecoName}
                         </Link>
                     </div>
@@ -148,7 +149,8 @@ export default function Home() {
                     <p className="text-gray-500 mb-6 text-sm text-center leading-relaxed">{t.careDesc}</p>
                     <div className="mt-auto pt-6 border-t border-gray-100 text-center">
                         <div className="text-3xl font-bold text-[#1A2A3A] mb-4">680 TL</div>
-                        <Link href="/box-builder" className="block w-full py-4 rounded-xl bg-[#D4AF37] text-white font-bold hover:bg-[#b5952f] transition shadow-lg shadow-[#D4AF37]/30">
+                        {/* لینک اصلاح شده: type=care */}
+                        <Link href="/box-builder?type=care" className="block w-full py-4 rounded-xl bg-[#D4AF37] text-white font-bold hover:bg-[#b5952f] transition shadow-lg shadow-[#D4AF37]/30">
                             {t.btnSelect} {t.careName}
                         </Link>
                     </div>
@@ -164,7 +166,8 @@ export default function Home() {
                     <p className="text-gray-300 mb-6 text-sm text-center leading-relaxed">{t.blissDesc}</p>
                     <div className="mt-auto pt-6 border-t border-gray-700 text-center">
                         <div className="text-3xl font-bold text-white mb-4">1350 TL</div>
-                        <Link href="/box-builder" className="block w-full py-3 rounded-xl bg-white text-[#1A2A3A] font-bold hover:bg-[#D4AF37] hover:text-white transition">
+                        {/* لینک اصلاح شده: type=bliss */}
+                        <Link href="/box-builder?type=bliss" className="block w-full py-3 rounded-xl bg-white text-[#1A2A3A] font-bold hover:bg-[#D4AF37] hover:text-white transition">
                             {t.btnSelect} {t.blissName}
                         </Link>
                     </div>
@@ -174,7 +177,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. Hero Section (بخش شروع پایین) */}
+      {/* 2. Hero Section */}
       <section className="relative px-6 py-20 bg-white text-center max-w-5xl mx-auto flex flex-col items-center border-t border-gray-100">
         <div className="inline-block bg-[#D4AF37]/10 text-[#D4AF37] px-6 py-2 rounded-full text-sm font-semibold mb-8 border border-[#D4AF37]/20">
           {t.heroBadge}
@@ -186,6 +189,7 @@ export default function Home() {
           {t.heroSub}
         </p>
         <div className="flex flex-col md:flex-row gap-5 justify-center items-center w-full max-w-md mx-auto">
+          {/* لینک اصلاح شده: پیش‌فرض */}
           <Link href="/box-builder" className="w-full md:w-auto bg-[#1A2A3A] text-white px-8 py-4 rounded-xl font-medium text-lg hover:bg-[#2a4a6a] transition flex items-center justify-center gap-2 shadow-lg shadow-[#1A2A3A]/20">
             {t.btnStart} <ArrowRight size={20} />
           </Link>
@@ -194,8 +198,6 @@ export default function Home() {
           </Link>
         </div>
       </section>
-
-      {/* بخش تماس حذف شد چون Footer اصلی در layout برگشت */}
 
     </div>
   );
