@@ -3,98 +3,78 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight, Star, Heart, Plus } from 'lucide-react';
+import { ArrowRight, Star, Heart, Plus, Minus, ShoppingBag, X, Check } from 'lucide-react';
 
 export default function ProductsPage() {
   const [lang, setLang] = useState('EN');
+  
+  // --- Shopping Cart State ---
+  const [cart, setCart] = useState<{ [key: string]: number }>({});
+  const [isCheckout, setIsCheckout] = useState(false); // حالت پرداخت
+  const [formData, setFormData] = useState({ name: '', phone: '', address: '', zip: '' });
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [trackingCode, setTrackingCode] = useState('');
 
-  // دیکشنری زبان‌ها
   const content: any = {
     EN: {
-      title: "All Products",
-      subtitle: "Everything you need for a better cycle, all in one place.",
-      secBoxes: "Signature Subscription Boxes",
-      secAddons: "Wellness & Self-Care Essentials",
-      
-      // Boxes
-      box1: "Essential Box", box1Desc: "Organic pads + hygiene basics.",
-      box2: "Care Box", box2Desc: "Pain relief focus + chocolates.",
-      box3: "Bliss Box", box3Desc: "Full spa experience + premium gifts.",
-      
+      title: "All Products", subtitle: "Shop essentials & gifts directly.",
+      secBoxes: "Signature Subscription Boxes", secAddons: "Shop Individual Items",
+      boxBtn: "Customize Plan", 
       // Items
-      item1: "Handmade Chocolate", item1Desc: "Belgian dark chocolate to boost serotonin.",
-      item2: "VELA Herbal Tea", item2Desc: "Custom blend to soothe cramps and relax.",
-      item3: "Heat Patch", item3Desc: "Instant warmth for lower back pain.",
-      item4: "Hot Water Bottle", item4Desc: "Classic comfort for cozy nights.",
-      item5: "Organic Pads", item5Desc: "100% organic cotton, toxin-free.",
-      item6: "Tampons", item6Desc: "Smooth applicator, ultimate protection.",
-
-      btnBuild: "Build Box",
-      btnAdd: "Add to Box",
-      price: "TL"
+      item1: "Handmade Chocolate", item1Desc: "Belgian dark chocolate.",
+      item2: "VELA Herbal Tea", item2Desc: "Relaxing blend.",
+      item3: "Heat Patch", item3Desc: "Instant pain relief.",
+      item4: "Hot Water Bottle", item4Desc: "Cozy comfort.",
+      item5: "Organic Pads (10x)", item5Desc: "100% Cotton.",
+      item6: "Tampons (10x)", item6Desc: "Premium protection.",
+      // Cart
+      total: "Total:", itemUnit: "items", checkout: "Proceed to Checkout",
+      // Checkout Form
+      formTitle: "Quick Checkout", formDesc: "Enter your details to complete the purchase.",
+      name: "Full Name", phone: "Phone Number", addr: "Address",
+      confirm: "Confirm Order", back: "Back to Shop",
+      success: "Order Placed!", track: "Tracking Code:",
+      currency: "TL"
     },
     FA: {
-      title: "تمام محصولات",
-      subtitle: "هر آنچه برای یک دوره راحت‌تر نیاز دارید، در یک نگاه.",
-      secBoxes: "باکس‌های اشتراکی ولا",
-      secAddons: "محصولات سلامتی و مراقبتی",
+      title: "فروشگاه محصولات", subtitle: "خرید مستقیم محصولات تکی و هدایا.",
+      secBoxes: "باکس‌های اشتراکی (نیازمند تنظیم)", secAddons: "خرید محصولات تکی",
+      boxBtn: "شخصی‌سازی اشتراک", 
       
-      box1: "باکس اسنشیال", box1Desc: "پدهای ارگانیک + نیازهای اولیه.",
-      box2: "باکس کِر (Care)", box2Desc: "تمرکز بر تسکین درد + شکلات.",
-      box3: "باکس بلیس (Bliss)", box3Desc: "تجربه کامل اسپا + هدایای لوکس.",
-      
-      item1: "شکلات دست‌ساز", item1Desc: "شکلات تلخ بلژیکی برای افزایش سروتونین.",
-      item2: "دمنوش گیاهی ولا", item2Desc: "ترکیب اختصاصی برای آرامش و کاهش درد.",
-      item3: "پچ حرارتی", item3Desc: "گرمای فوری برای درد کمر و شکم.",
-      item4: "کیسه آب گرم", item4Desc: "آرامش کلاسیک برای شب‌های سخت.",
-      item5: "نوار بهداشتی ارگانیک", item5Desc: "۱۰۰٪ کتان خالص، بدون مواد سمی.",
-      item6: "تامپون", item6Desc: "اپلیکاتور روان، محافظت حداکثری.",
+      item1: "شکلات دست‌ساز", item1Desc: "شکلات تلخ بلژیکی.",
+      item2: "دمنوش گیاهی", item2Desc: "ترکیب آرامش‌بخش.",
+      item3: "پچ حرارتی", item3Desc: "تسکین فوری درد.",
+      item4: "کیسه آب گرم", item4Desc: "آرامش کلاسیک.",
+      item5: "نوار بهداشتی (۱۰تایی)", item5Desc: "۱۰۰٪ کتان ارگانیک.",
+      item6: "تامپون (۱۰تایی)", item6Desc: "محافظت پریمیوم.",
 
-      btnBuild: "انتخاب باکس",
-      btnAdd: "افزودن به باکس",
-      price: "لیر"
+      total: "مبلغ قابل پرداخت:", itemUnit: "قلم", checkout: "تکمیل خرید",
+      formTitle: "تسویه حساب سریع", formDesc: "برای نهایی کردن خرید مشخصات را وارد کنید.",
+      name: "نام و نام خانوادگی", phone: "شماره تماس", addr: "آدرس دقیق پستی",
+      confirm: "ثبت سفارش و پرداخت", back: "بازگشت به فروشگاه",
+      success: "سفارش با موفقیت ثبت شد!", track: "کد رهگیری شما:",
+      currency: "لیر"
     },
     TR: {
-      title: "Tüm Ürünler",
-      subtitle: "Daha iyi bir döngü için ihtiyacınız olan her şey.",
-      secBoxes: "İmza Kutularımız",
-      secAddons: "Sağlık ve Bakım Ürünleri",
-      
-      box1: "Essential", box1Desc: "Organik pedler + temel ihtiyaçlar.",
-      box2: "Care", box2Desc: "Ağrı kesici odaklı + çikolata.",
-      box3: "Bliss", box3Desc: "Tam spa deneyimi + lüks hediyeler.",
-      
-      item1: "El Yapımı Çikolata", item1Desc: "Serotonin artıran Belçika çikolatası.",
-      item2: "VELA Bitki Çayı", item2Desc: "Krampları hafifleten özel karışım.",
-      item3: "Isı Bandı", item3Desc: "Bel ağrısı için anında sıcaklık.",
-      item4: "Sıcak Su Torbası", item4Desc: "Klasik rahatlık.",
-      item5: "Organik Ped", item5Desc: "%100 organik pamuk.",
-      item6: "Tampon", item6Desc: "Üstün koruma.",
-
-      btnBuild: "Kutu Oluştur",
-      btnAdd: "Kutuya Ekle",
-      price: "TL"
+      title: "Mağaza", subtitle: "Tekli ürünleri hemen satın al.",
+      secBoxes: "Abonelik Kutuları", secAddons: "Tekli Ürünler",
+      boxBtn: "Planla",
+      item1: "El Yapımı Çikolata", item2: "Bitki Çayı", item3: "Isı Bandı", item4: "Su Torbası", item5: "Ped (10lu)", item6: "Tampon (10lu)",
+      total: "Toplam:", checkout: "Ödemeye Geç",
+      formTitle: "Hızlı Ödeme", name: "İsim Soyisim", phone: "Telefon", addr: "Adres",
+      confirm: "Siparişi Onayla", back: "Geri Dön",
+      success: "Sipariş Alındı!", track: "Takip Kodu:",
+      currency: "TL"
     },
     RU: {
-      title: "Все товары",
-      subtitle: "Все, что нужно для комфортного цикла.",
-      secBoxes: "Наши боксы",
-      secAddons: "Товары для здоровья",
-      
-      box1: "Essential", box1Desc: "Базовый набор.",
-      box2: "Care", box2Desc: "Облегчение боли + шоколад.",
-      box3: "Bliss", box3Desc: "Спа-уход + подарки.",
-      
-      item1: "Шоколад", item1Desc: "Бельгийский шоколад.",
-      item2: "Травяной чай", item2Desc: "Особый сбор.",
-      item3: "Пластырь", item3Desc: "От боли в спине.",
-      item4: "Грелка", item4Desc: "Классический комфорт.",
-      item5: "Прокладки", item5Desc: "100% хлопок.",
-      item6: "Тампоны", item6Desc: "Защита.",
-
-      btnBuild: "Выбрать",
-      btnAdd: "Добавить",
-      price: "TL"
+       title: "Магазин", subtitle: "Покупка товаров.",
+       secBoxes: "Подписка", secAddons: "Товары",
+       boxBtn: "Настроить",
+       total: "Итого:", checkout: "Оплатить",
+       formTitle: "Оформление", name: "Имя", phone: "Телефон", addr: "Адрес",
+       confirm: "Подтвердить", back: "Назад",
+       success: "Успешно!", track: "Код:",
+       currency: "TL"
     }
   };
 
@@ -110,87 +90,229 @@ export default function ProductsPage() {
   const t = content[lang] || content['EN'];
   const isRTL = lang === 'FA';
 
-  // لیست باکس‌ها
+  // --- Data ---
   const boxes = [
-    { id: 'essential', name: t.box1, desc: t.box1Desc, price: 380, img: '/images/essential.jpg', tag: 'STARTER' },
-    { id: 'care', name: t.box2, desc: t.box2Desc, price: 680, img: '/images/care.jpg', tag: 'POPULAR' },
-    { id: 'bliss', name: t.box3, desc: t.box3Desc, price: 1350, img: '/images/bliss.jpg', tag: 'PREMIUM' },
+    { id: 'essential', name: 'Essential Box', price: 380, img: '/images/essential.jpg' },
+    { id: 'care', name: 'Care Box', price: 680, img: '/images/care.jpg' },
+    { id: 'bliss', name: 'Bliss Box', price: 1350, img: '/images/bliss.jpg' },
   ];
 
-  // لیست محصولات تکی
   const essentials = [
-    { id: 'pads', name: t.item5, desc: t.item5Desc, price: 0, img: '/images/pads.jpg' }, 
-    { id: 'tampons', name: t.item6, desc: t.item6Desc, price: 50, img: '/images/tampons.jpg' }, 
+    { id: 'pads10', name: t.item5, desc: t.item5Desc, price: 120, img: '/images/pads.jpg' }, 
+    { id: 'tampons10', name: t.item6, desc: t.item6Desc, price: 140, img: '/images/tampons.jpg' }, 
     { id: 'chocolate', name: t.item1, desc: t.item1Desc, price: 80, img: '/images/chocolate.jpg' },
     { id: 'tea', name: t.item2, desc: t.item2Desc, price: 60, img: '/images/tea.jpg' },
     { id: 'patch', name: t.item3, desc: t.item3Desc, price: 40, img: '/images/patch.jpg' },
     { id: 'bottle', name: t.item4, desc: t.item4Desc, price: 150, img: '/images/bottle.jpg' },
   ];
 
+  // --- Cart Logic ---
+  const updateCart = (id: string, delta: number) => {
+      setCart(prev => {
+          const newCount = (prev[id] || 0) + delta;
+          if (newCount <= 0) {
+              const { [id]: _, ...rest } = prev;
+              return rest;
+          }
+          return { ...prev, [id]: newCount };
+      });
+  };
+
+  const calculateTotal = () => {
+      let total = 0;
+      essentials.forEach(item => {
+          if (cart[item.id]) total += item.price * cart[item.id];
+      });
+      return total;
+  };
+
+  const cartItemCount = Object.values(cart).reduce((a, b) => a + b, 0);
+
+  // --- Payment Logic (Direct One-Time Purchase) ---
+  const handleDirectBuy = async () => {
+      if (!formData.name || !formData.phone || !formData.address) {
+          alert(lang === 'FA' ? "لطفاً تمام فیلدها را پر کنید" : "Please fill all fields");
+          return;
+      }
+
+      const code = "SHOP-" + Math.floor(100000 + Math.random() * 900000);
+      setTrackingCode(code);
+
+      // ساخت لیست اقلام برای تلگرام
+      const itemsList = Object.entries(cart).map(([id, count]) => {
+          const product = essentials.find(e => e.id === id);
+          return `${product?.name} (${count}x)`;
+      }).join(' + ');
+
+      const payload = {
+          trackingCode: code,
+          formData: formData,
+          totalPrice: calculateTotal(),
+          orderDetails: {
+              boxName: "Direct Shop Order",
+              subscription: "One-Time",
+              pads: "-",
+              tampons: "-",
+              extras: itemsList // لیست محصولات انتخابی اینجا می‌رود
+          }
+      };
+
+      try {
+          const res = await fetch('/api/checkout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+          });
+          if (res.ok) setIsSuccess(true);
+      } catch (err) {
+          console.error(err);
+      }
+  };
+
+  // --- RENDER ---
+  
+  // 1. SUCCESS VIEW
+  if (isSuccess) {
+      return (
+        <div className="min-h-screen bg-[#F9F7F2] flex flex-col items-center justify-center text-center p-6 animate-fade-in">
+            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-lg"><Check size={48}/></div>
+            <h2 className="text-4xl font-serif font-bold text-[#1A2A3A] mb-4">{t.success}</h2>
+            <div className="bg-white p-6 rounded-2xl border-2 border-dashed border-gray-300 mb-8">
+                <p className="text-gray-500 text-sm uppercase tracking-widest">{t.track}</p>
+                <p className="text-3xl font-mono font-bold text-[#1A2A3A]">{trackingCode}</p>
+            </div>
+            <Link href="/" className="px-8 py-3 bg-[#1A2A3A] text-white rounded-xl font-bold">{t.back}</Link>
+        </div>
+      );
+  }
+
+  // 2. CHECKOUT FORM VIEW
+  if (isCheckout) {
+      return (
+          <div className="min-h-screen bg-[#F9F7F2] py-28 px-4" dir={isRTL ? 'rtl' : 'ltr'}>
+              <div className="max-w-md mx-auto bg-white p-8 rounded-[2rem] shadow-2xl animate-scale-in relative">
+                  <button onClick={() => setIsCheckout(false)} className="absolute top-6 right-6 p-2 bg-gray-100 rounded-full hover:bg-red-100 hover:text-red-500 transition"><X size={20}/></button>
+                  
+                  <h2 className="text-2xl font-serif font-bold text-[#1A2A3A] mb-2">{t.formTitle}</h2>
+                  <p className="text-gray-500 text-sm mb-6">{t.formDesc}</p>
+                  
+                  {/* Order Summary */}
+                  <div className="bg-gray-50 p-4 rounded-xl mb-6">
+                      {Object.entries(cart).map(([id, count]) => {
+                          const item = essentials.find(e => e.id === id);
+                          if (!item) return null;
+                          return (
+                              <div key={id} className="flex justify-between text-sm mb-2 text-[#1A2A3A]">
+                                  <span>{item.name} <span className="text-gray-400">x{count}</span></span>
+                                  <span className="font-bold">{item.price * count}</span>
+                              </div>
+                          );
+                      })}
+                      <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between font-bold text-lg text-[#D4AF37]">
+                          <span>{t.total}</span>
+                          <span>{calculateTotal()} {t.currency}</span>
+                      </div>
+                  </div>
+
+                  {/* Inputs */}
+                  <div className="space-y-4">
+                      <input type="text" placeholder={t.name} className="w-full p-4 rounded-xl border bg-[#F9F7F2] focus:border-[#D4AF37] outline-none transition" onChange={e => setFormData({...formData, name: e.target.value})}/>
+                      <input type="tel" placeholder={t.phone} className="w-full p-4 rounded-xl border bg-[#F9F7F2] focus:border-[#D4AF37] outline-none transition" onChange={e => setFormData({...formData, phone: e.target.value})}/>
+                      <textarea placeholder={t.addr} rows={3} className="w-full p-4 rounded-xl border bg-[#F9F7F2] focus:border-[#D4AF37] outline-none transition" onChange={e => setFormData({...formData, address: e.target.value})}/>
+                      
+                      <button onClick={handleDirectBuy} className="w-full bg-[#1A2A3A] text-white py-4 rounded-xl font-bold hover:bg-[#D4AF37] transition shadow-lg flex items-center justify-center gap-2">
+                          {t.confirm} <ArrowRight size={18}/>
+                      </button>
+                  </div>
+              </div>
+          </div>
+      );
+  }
+
+  // 3. MAIN SHOP VIEW
   return (
     <div className="min-h-screen bg-[#F9F7F2] py-28 px-6" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-7xl mx-auto">
         
-        {/* هدر صفحه */}
-        <div className="text-center mb-20 animate-fade-in">
+        {/* Header */}
+        <div className="text-center mb-16 animate-fade-in">
           <h1 className="text-5xl font-serif font-bold text-[#1A2A3A] mb-4">{t.title}</h1>
           <p className="text-xl text-gray-500 max-w-2xl mx-auto">{t.subtitle}</p>
         </div>
 
-        {/* بخش ۱: باکس‌ها */}
-        <div className="mb-24">
-            <h2 className="text-3xl font-bold text-[#1A2A3A] mb-8 flex items-center gap-3">
-                <span className="w-8 h-1 bg-[#D4AF37]"></span> {t.secBoxes}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {boxes.map((p) => (
-                <div key={p.id} className="bg-white rounded-[2rem] p-4 shadow-lg hover:shadow-2xl transition-all duration-500 group border border-gray-100 flex flex-col">
-                <div className="relative h-64 w-full rounded-2xl overflow-hidden mb-6 bg-gray-100">
-                    <Image src={p.img} alt={p.name} fill className="object-cover group-hover:scale-110 transition duration-700" />
-                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-[#1A2A3A] shadow-sm">
-                        {p.tag}
-                    </div>
-                </div>
-                <div className="px-2 mb-4">
-                    <h3 className="text-2xl font-serif font-bold text-[#1A2A3A]">{p.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{p.desc}</p>
-                </div>
-                <div className="mt-auto flex justify-between items-center px-2 pt-4 border-t border-gray-100">
-                    <span className="text-xl font-bold text-[#D4AF37]">{p.price} {t.price}</span>
-                    <Link href="/box-builder" className="bg-[#1A2A3A] text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-[#D4AF37] transition flex items-center gap-2">
-                        {t.btnBuild} <ArrowRight size={16}/>
-                    </Link>
-                </div>
-                </div>
-            ))}
-            </div>
-        </div>
-
-        {/* بخش ۲: محصولات تکی */}
-        <div>
-            <h2 className="text-3xl font-bold text-[#1A2A3A] mb-8 flex items-center gap-3">
-                <span className="w-8 h-1 bg-[#D4AF37]"></span> {t.secAddons}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {essentials.map((item) => (
-                    <div key={item.id} className="bg-white rounded-3xl p-4 hover:shadow-xl transition duration-300 border border-transparent hover:border-gray-200 group">
-                        <div className="relative h-40 w-full rounded-2xl overflow-hidden mb-4 bg-gray-50">
-                            {/* تصاویر محصولات اینجا لود می‌شوند */}
-                            <Image src={item.img} alt={item.name} fill className="object-cover group-hover:scale-105 transition" />
+        {/* Section 1: Subscription Boxes (Link Only) */}
+        <div className="mb-20">
+            <h2 className="text-2xl font-bold text-[#1A2A3A] mb-6 border-b pb-2">{t.secBoxes}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {boxes.map((box) => (
+                    <div key={box.id} className="bg-white rounded-3xl p-4 shadow-sm hover:shadow-md transition flex items-center gap-4 group">
+                        <div className="w-20 h-20 bg-gray-100 rounded-2xl relative overflow-hidden shrink-0">
+                            <Image src={box.img} alt={box.name} fill className="object-cover"/>
                         </div>
-                        <h4 className="font-bold text-[#1A2A3A] text-lg mb-1">{item.name}</h4>
-                        <p className="text-xs text-gray-500 mb-4 h-8 overflow-hidden">{item.desc}</p>
-                        
-                        <div className="flex justify-between items-center">
-                            <span className="font-bold text-[#D4AF37]">{item.price > 0 ? `${item.price} ${t.price}` : '-'}</span>
-                            <Link href="/box-builder" className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[#1A2A3A] hover:bg-[#1A2A3A] hover:text-white transition" title={t.btnAdd}>
-                                <Plus size={18}/>
-                            </Link>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-[#1A2A3A]">{box.name}</h3>
+                            <p className="text-sm text-[#D4AF37] font-bold">{box.price} {t.currency} / month</p>
                         </div>
+                        <Link href="/box-builder" className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-[#1A2A3A] group-hover:bg-[#1A2A3A] group-hover:text-white transition">
+                            <ArrowRight size={18}/>
+                        </Link>
                     </div>
                 ))}
             </div>
         </div>
+
+        {/* Section 2: Individual Products (Shop) */}
+        <div className="mb-32">
+            <h2 className="text-2xl font-bold text-[#1A2A3A] mb-6 border-b pb-2">{t.secAddons}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {essentials.map((item) => {
+                    const count = cart[item.id] || 0;
+                    return (
+                        <div key={item.id} className={`bg-white rounded-[2rem] p-4 transition-all duration-300 border-2 ${count > 0 ? 'border-[#D4AF37] shadow-lg scale-105' : 'border-transparent hover:border-gray-200 shadow-sm'}`}>
+                            <div className="relative h-40 w-full rounded-2xl overflow-hidden mb-4 bg-gray-50">
+                                <Image src={item.img} alt={item.name} fill className="object-cover"/>
+                                {count > 0 && <div className="absolute top-2 right-2 bg-[#D4AF37] text-white text-xs font-bold px-2 py-1 rounded-full">{count}x</div>}
+                            </div>
+                            <h4 className="font-bold text-[#1A2A3A] text-lg leading-tight mb-1">{item.name}</h4>
+                            <p className="text-xs text-gray-500 mb-4 h-8 overflow-hidden">{item.desc}</p>
+                            
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-[#1A2A3A]">{item.price} {t.currency}</span>
+                                
+                                {/* Quantity Controls */}
+                                {count === 0 ? (
+                                    <button onClick={() => updateCart(item.id, 1)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-[#1A2A3A] hover:bg-[#1A2A3A] hover:text-white transition">
+                                        <Plus size={18}/>
+                                    </button>
+                                ) : (
+                                    <div className="flex items-center gap-2 bg-[#1A2A3A] rounded-full px-1 py-1">
+                                        <button onClick={() => updateCart(item.id, -1)} className="w-6 h-6 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/40"><Minus size={14}/></button>
+                                        <span className="text-white text-sm font-bold min-w-[10px] text-center">{count}</span>
+                                        <button onClick={() => updateCart(item.id, 1)} className="w-6 h-6 rounded-full bg-white text-[#1A2A3A] flex items-center justify-center"><Plus size={14}/></button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+
+        {/* Sticky Cart Footer */}
+        {cartItemCount > 0 && (
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-lg bg-[#1A2A3A] text-white p-4 rounded-2xl shadow-2xl z-50 flex justify-between items-center animate-slide-up">
+                <div className="flex items-center gap-3">
+                    <div className="bg-[#D4AF37] w-10 h-10 rounded-full flex items-center justify-center font-bold text-[#1A2A3A]">{cartItemCount}</div>
+                    <div>
+                        <span className="text-xs text-gray-300 block">{t.total}</span>
+                        <span className="font-bold text-xl">{calculateTotal()} {t.currency}</span>
+                    </div>
+                </div>
+                <button onClick={() => setIsCheckout(true)} className="bg-white text-[#1A2A3A] px-6 py-2 rounded-xl font-bold hover:bg-[#D4AF37] transition flex items-center gap-2">
+                    {t.checkout} <ArrowRight size={16}/>
+                </button>
+            </div>
+        )}
 
       </div>
     </div>
