@@ -1,53 +1,54 @@
 import { NextResponse } from 'next/server';
 
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
 export async function POST(req: Request) {
   try {
-    const data = await req.json();
-    const { orderId, customer, items, total, cycle } = data;
+    const body = await req.json();
+    const { trackingCode, customer, order } = body;
 
-    // ✅ تنظیمات نهایی (توکن جدید + آیدی شما)
-    const token = '8255435787:AAGJB-01HA8aILUfV42n7SRmNpJdAN15XCQ';
-    const chatId = '8183467266';
-
-    // ساخت لیست محصولات
-    const extrasList = items.extras
-      .filter((i: any) => i !== null)
-      .map((i: any) => `▫️ ${i.name}: ${i.count}`)
-      .join('\n');
-
-    // متن پیام
+    // ساخت متن پیام با فرمت HTML (طبق تنظیمات قبلی شما)
     const message = `
-<b>🚨 سفارش جدید! (#${orderId})</b>
+<b>📦 سفارش جدید در VELA ثبت شد!</b>
+<code>${trackingCode}</code>
 
-👤 <b>مشتری:</b> ${customer.name}
-📞 <b>تلفن:</b> ${customer.phone}
-📍 <b>آدرس:</b> ${customer.address}
+<b>👤 اطلاعات مشتری:</b>
+<b>نام:</b> ${customer.name}
+<b>تلفن:</b> ${customer.phone}
+<b>آدرس:</b> ${customer.address}
+<b>کد پستی:</b> ${customer.zip}
 
-📦 <b>جزئیات بسته:</b>
-💎 پکیج: ${items.packageName}
-🔄 اشتراک: ${cycle}
-${extrasList ? `\n🛍 <b>اقلام افزوده:</b>\n${extrasList}` : ''}
+<b>🛒 جزئیات سفارش:</b>
+▪️ <b>باکس:</b> ${order.box}
+▪️ <b>اشتراک:</b> ${order.plan}
+▪️ <b>پدها:</b> ${order.pads}
+▪️ <b>تامپون:</b> ${order.tampons}
+▪️ <b>بسته‌بندی اکو:</b> ${order.eco}
+▪️ <b>اقلام اضافه:</b> ${order.extras}
 
-💰 <b>مبلغ کل: ${total}</b>
-✅ وضعیت: پرداخت موفق
-`;
-
-    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+💰 <b>مبلغ کل:</b> ${order.totalPrice} لیر
+    `;
 
     // ارسال به تلگرام
-    await fetch(url, {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        chat_id: chatId,
+        chat_id: CHAT_ID,
         text: message,
-        parse_mode: 'HTML',
+        parse_mode: 'HTML', // تنظیم روی HTML طبق عکس شما
       }),
     });
 
+    if (!response.ok) {
+      return NextResponse.json({ error: 'Telegram API Error' }, { status: 500 });
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Server Error:", error);
-    return NextResponse.json({ success: false }, { status: 500 });
+    console.error('Server Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
