@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { 
   ArrowLeft, ArrowRight, Check, Calendar as CalendarIcon, Package, Sliders, 
-  Heart, Coffee, Thermometer, Gift, Sun, Moon, Leaf, MapPin, 
-  CreditCard, Truck, Info, ChevronLeft, ChevronRight, Minus, Plus 
+  Heart, Coffee, Thermometer, Gift, Sun, Moon, Leaf, Info, ChevronLeft, ChevronRight, Minus, Plus 
 } from 'lucide-react';
 
 // --- Utility: Simple Jalaali Converter ---
@@ -51,10 +51,24 @@ const jalaali = {
   monthNames: ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
 };
 
-export default function BoxBuilder() {
+// --- Box Configuration Data (قیمت‌ها و مشخصات) ---
+const BOX_DATA: any = {
+  essential: { id: 'essential', name: 'Essential', basePrice: 380, points: 30 },
+  care: { id: 'care', name: 'Care', basePrice: 680, points: 50 },
+  bliss: { id: 'bliss', name: 'Bliss', basePrice: 1350, points: 100 },
+};
+
+function BoxBuilderContent() {
   const [step, setStep] = useState(1);
   const [lang, setLang] = useState('EN');
   
+  // دریافت پارامتر type از آدرس (مثلاً ?type=essential)
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get('type');
+  
+  // انتخاب باکس بر اساس لینک (اگر چیزی نبود، پیش‌فرض care می‌شود)
+  const selectedBoxType = BOX_DATA[typeParam || 'care'] || BOX_DATA['care'];
+
   // Data States
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [subscription, setSubscription] = useState(1);
@@ -73,17 +87,15 @@ export default function BoxBuilder() {
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', zip: '' });
   const [trackingCode, setTrackingCode] = useState('');
 
-  // Default Box
-  const selectedBoxType = { id: 'care', name: 'Care', basePrice: 680, points: 50 }; 
-
-  // --- Dictionary ---
   const content: any = {
     EN: {
       next: "Next Step", back: "Back", confirm: "Confirm & Pay", currency: "TL",
       step1Title: "Cycle Tracking", step1Desc: "Select your last period start date.",
       calcNext: "Next Period:", calcShip: "Shipping Date:",
-      step2Title: "Customize Box", subTitle: "Subscription Plan", discount: "OFF",
-      ecoTitle: "Eco-Friendly", ecoDesc: "Get +50 Wallet Points!",
+      // استفاده از نام باکس انتخاب شده در تیتر
+      step2Title: `Customize ${selectedBoxType.name} Box`, 
+      subTitle: "Subscription Plan", discount: "OFF",
+      ecoTitle: "Eco-Friendly", ecoDesc: `Get +${selectedBoxType.points} Wallet Points!`,
       padConfig: "Pad Selection", brand: "Brand", day: "Day Pads", night: "Night Pads",
       tamponConfig: "Tampons", enableTampon: "Add Tampons", count: "Qty",
       addOns: "Treats & Extras",
@@ -96,8 +108,9 @@ export default function BoxBuilder() {
       next: "مرحله بعد", back: "بازگشت", confirm: "پرداخت نهایی", currency: "لیر",
       step1Title: "تقویم قاعدگی", step1Desc: "تاریخ شروع آخرین پریود خود را انتخاب کنید.",
       calcNext: "پریود بعدی:", calcShip: "زمان ارسال (۵ روز قبل):",
-      step2Title: "شخصی‌سازی بسته", subTitle: "طرح اشتراک", discount: "تخفیف",
-      ecoTitle: "بسته‌بندی اکو", ecoDesc: "دریافت ۵۰ امتیاز کیف پول!",
+      step2Title: `شخصی‌سازی باکس ${selectedBoxType.name}`, 
+      subTitle: "طرح اشتراک", discount: "تخفیف",
+      ecoTitle: "بسته‌بندی اکو", ecoDesc: `دریافت ${selectedBoxType.points} امتیاز کیف پول!`,
       padConfig: "انتخاب نوار بهداشتی", brand: "برند", day: "پد روزانه", night: "پد شبانه",
       tamponConfig: "تامپون", enableTampon: "افزودن تامپون", count: "تعداد",
       addOns: "اقلام هیجان‌انگیز",
@@ -110,8 +123,8 @@ export default function BoxBuilder() {
        next: "İleri", back: "Geri", confirm: "Öde", currency: "TL",
        step1Title: "Döngü Takibi", step1Desc: "Son adet tarihini seçin.",
        calcNext: "Sonraki Adet:", calcShip: "Kargo Tarihi:",
-       step2Title: "Özelleştir", subTitle: "Abonelik", discount: "İndirim",
-       ecoTitle: "Eko Paket", ecoDesc: "+50 Puan Kazan!",
+       step2Title: `${selectedBoxType.name} Özelleştir`, subTitle: "Abonelik", discount: "İndirim",
+       ecoTitle: "Eko Paket", ecoDesc: `+${selectedBoxType.points} Puan Kazan!`,
        padConfig: "Ped Seçimi", brand: "Marka", day: "Gündüz", night: "Gece",
        tamponConfig: "Tampon", enableTampon: "Ekle", count: "Adet",
        addOns: "Ekstralar", exChoco: "Çikolata", exTea: "Çay", exPatch: "Isı Bandı", exBottle: "Su Torbası",
@@ -123,8 +136,8 @@ export default function BoxBuilder() {
        next: "Далее", back: "Назад", confirm: "Оплатить", currency: "TL",
        step1Title: "Календарь", step1Desc: "Дата начала цикла.",
        calcNext: "След. цикл:", calcShip: "Дата доставки:",
-       step2Title: "Настройка", subTitle: "Подписка", discount: "Скидка",
-       ecoTitle: "Эко", ecoDesc: "+50 баллов!",
+       step2Title: `Настройка ${selectedBoxType.name}`, subTitle: "Подписка", discount: "Скидка",
+       ecoTitle: "Эко", ecoDesc: `+${selectedBoxType.points} баллов!`,
        padConfig: "Прокладки", brand: "Бренд", day: "Дневные", night: "Ночные",
        tamponConfig: "Тампоны", enableTampon: "Добавить", count: "Кол-во",
        addOns: "Дополнения", exChoco: "Шоколад", exTea: "Чай", exPatch: "Пластырь", exBottle: "Грелка",
@@ -146,9 +159,9 @@ export default function BoxBuilder() {
   const t = content[lang] || content['EN'];
   const isRTL = lang === 'FA';
 
-  // --- Logic ---
+  // --- Logic (محاسبه قیمت با توجه به باکس انتخاب شده) ---
   const calculateTotal = () => {
-      let total = selectedBoxType.basePrice;
+      let total = selectedBoxType.basePrice; // اینجا قیمت پایه (۳۸۰، ۶۸۰ یا ۱۳۵۰) قرار می‌گیرد
       if (hasTampon) total += (tamponCount * 5);
       total += (extras.chocolate * 80) + (extras.tea * 60) + (extras.heatPatch * 40) + (extras.hotWaterBottle * 150);
       
@@ -179,19 +192,16 @@ export default function BoxBuilder() {
       };
   };
 
-  // --- Checkout / Payment Logic (Connected to /api/checkout) ---
+  // --- Checkout Logic (اتصال به تلگرام) ---
   const handlePayment = async () => {
-      // 1. Validation
       if (!formData.name || !formData.phone || !formData.address) {
-          alert(lang === 'FA' ? "لطفاً تمام فیلدها (نام، تلفن، آدرس) را پر کنید." : "Please fill in all fields (Name, Phone, Address).");
+          alert(lang === 'FA' ? "لطفاً تمام فیلدها را پر کنید." : "Please fill in all fields.");
           return;
       }
 
-      // 2. Generate Tracking Code
       const randomCode = "VELA-" + Math.floor(100000 + Math.random() * 900000);
       setTrackingCode(randomCode);
 
-      // 3. Format Extras
       let extrasList = [];
       if (extras.chocolate > 0) extrasList.push(`شکلات (${extras.chocolate})`);
       if (extras.tea > 0) extrasList.push(`دمنوش (${extras.tea})`);
@@ -199,13 +209,12 @@ export default function BoxBuilder() {
       if (extras.hotWaterBottle > 0) extrasList.push(`کیسه آب گرم (${extras.hotWaterBottle})`);
       const extrasText = extrasList.length > 0 ? extrasList.join('، ') : 'ندارد';
 
-      // 4. Prepare Payload
       const payload = {
           trackingCode: randomCode,
           formData: formData,
           totalPrice: calculateTotal(),
           orderDetails: {
-              boxName: selectedBoxType.name,
+              boxName: selectedBoxType.name, // نام باکس درست ارسال می‌شود
               subscription: subscription,
               pads: `${dayPads} روزانه / ${nightPads} شبانه (${padBrand})`,
               tampons: hasTampon ? `${tamponCount} عدد (${tamponBrand})` : 'ندارد',
@@ -214,9 +223,7 @@ export default function BoxBuilder() {
       };
 
       try {
-          console.log("🚀 Sending Order...", payload);
-          
-          // Call the NEW /api/checkout route
+          // اتصال به API پرداخت (که به تلگرام وصل است)
           const res = await fetch('/api/checkout', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -226,13 +233,10 @@ export default function BoxBuilder() {
           if (res.ok) {
               setStep(4);
           } else {
-              const errData = await res.json();
-              console.error("Server Response Error:", errData);
-              alert(lang === 'FA' ? "خطا در ثبت سفارش. لطفاً دوباره تلاش کنید." : "Order failed. Please try again.");
+              alert(lang === 'FA' ? "خطا در ثبت سفارش." : "Order failed.");
           }
       } catch (error) {
-          console.error("Network Error:", error);
-          alert(lang === 'FA' ? "خطای شبکه! اتصال اینترنت را بررسی کنید." : "Network Error. Check your connection.");
+          alert(lang === 'FA' ? "خطای شبکه." : "Network Error.");
       }
   };
 
@@ -450,6 +454,7 @@ export default function BoxBuilder() {
                     <h3 className="font-bold mb-4 flex items-center gap-2"><Info size={18}/> {t.reviewOrder}</h3>
                     <div className="space-y-3 text-sm text-gray-600">
                         <div className="flex justify-between"><span>Plan</span> <span className="font-bold text-[#1A2A3A]">{subscription} Month</span></div>
+                        <div className="flex justify-between"><span>Box</span> <span className="font-bold text-[#D4AF37]">{selectedBoxType.name}</span></div>
                         <div className="flex justify-between"><span>Pads</span> <span className="font-bold text-[#1A2A3A]">{dayPads} D / {nightPads} N ({padBrand})</span></div>
                         <div className="flex justify-between"><span>Total</span> <span className="font-bold text-[#D4AF37] text-lg">{calculateTotal()} {t.currency}</span></div>
                     </div>
@@ -482,7 +487,7 @@ export default function BoxBuilder() {
             <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 p-4 z-50 animate-slide-up">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <div>
-                        <span className="text-xs text-gray-500 block">{t.priceSummary}</span>
+                        <span className="text-xs text-gray-500 block">{t.priceSummary} ({selectedBoxType.name})</span>
                         <span className="text-2xl font-bold text-[#1A2A3A]">{calculateTotal()} {t.currency}</span>
                     </div>
                     <button onClick={() => setStep(3)} className="bg-[#1A2A3A] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#D4AF37] transition shadow-lg flex items-center gap-2">
@@ -494,5 +499,14 @@ export default function BoxBuilder() {
 
       </div>
     </div>
+  );
+}
+
+// Wrapper to prevent hydration mismatch with useSearchParams
+export default function BoxBuilder() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <BoxBuilderContent />
+    </Suspense>
   );
 }
