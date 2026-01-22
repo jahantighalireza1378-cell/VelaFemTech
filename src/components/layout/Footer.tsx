@@ -22,7 +22,8 @@ export default function Footer() {
       contact: 'تماس با ما',
       links: { home: 'خانه', build: 'ساخت باکس', gift: 'کارت هدیه', track: 'پیگیری سفارش' },
       copyright: 'تمامی حقوق محفوظ است.',
-      location: 'استانبول، ترکیه'
+      location: 'آلانیا، ترکیه', // اصلاح شده برای شاپیر
+      legal: { privacy: 'حریم خصوصی', terms: 'شرایط و قوانین', refund: 'رویه بازگشت کالا' }
     },
     EN: {
       desc: 'At VELA, we believe periods shouldn\'t hold you back. With "Sail Through It", we are here to help you navigate through hormonal storms smoothly.',
@@ -30,7 +31,8 @@ export default function Footer() {
       contact: 'Contact Us',
       links: { home: 'Home', build: 'Build Box', gift: 'Gift Card', track: 'Order Tracking' },
       copyright: 'All rights reserved.',
-      location: 'Istanbul, Turkey'
+      location: 'Alanya, Turkey', // Updated for Shopier
+      legal: { privacy: 'Privacy Policy', terms: 'Terms of Service', refund: 'Refund Policy' }
     },
     TR: {
       desc: 'VELA olarak regl döneminin sizi durdurmaması gerektiğine inanıyoruz. "Sail Through It" sloganıyla, hormonal fırtınaları sakince atlatmanız için yanınızdayız.',
@@ -38,7 +40,8 @@ export default function Footer() {
       contact: 'İletişim',
       links: { home: 'Ana Sayfa', build: 'Kutu Yap', gift: 'Hediye Kartı', track: 'Sipariş Takibi' },
       copyright: 'Tüm hakları saklıdır.',
-      location: 'İstanbul, Türkiye'
+      location: 'Alanya, Türkiye', // Güncellendi
+      legal: { privacy: 'Gizlilik Politikası', terms: 'Hizmet Şartları', refund: 'İade Politikası' }
     },
     RU: {
       desc: 'В VELA мы верим, что менструация не должна вас сдерживать. Под девизом "Sail Through It" мы здесь, чтобы помочь вам плавно пройти через гормональные штормы.',
@@ -46,7 +49,8 @@ export default function Footer() {
       contact: 'Контакты',
       links: { home: 'Главная', build: 'Собрать бокс', gift: 'Подарочная карта', track: 'Отслеживание' },
       copyright: 'Все права защищены.',
-      location: 'Стамбул, Турция'
+      location: 'Алания, Турция', // Обновлено
+      legal: { privacy: 'Конфиденциальность', terms: 'Условия использования', refund: 'Возврат товара' }
     }
   };
 
@@ -54,7 +58,7 @@ export default function Footer() {
   const isRTL = lang === 'FA';
 
   return (
-    <footer className="bg-[#1A2A3A] text-white pt-16 pb-8" dir={isRTL ? 'rtl' : 'ltr'}>
+    <footer className="bg-[#1A2A3A] text-white pt-16 pb-8 border-t border-[#D4AF37]/20" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
         
         {/* ستون ۱: درباره */}
@@ -64,7 +68,7 @@ export default function Footer() {
             {text.desc}
           </p>
           <div className="flex gap-4">
-            {/* ✅ لینک اینستاگرام وصل شد */}
+            {/* ✅ لینک اینستاگرام */}
             <a 
               href="https://instagram.com/velafemtech" 
               target="_blank" 
@@ -74,7 +78,7 @@ export default function Footer() {
               <Instagram size={20}/>
             </a>
 
-            {/* لینک تلگرام (هنوز placeholder است) */}
+            {/* لینک تلگرام */}
             <a href="#" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-[#D4AF37] hover:text-[#1A2A3A] transition-all">
               <Send size={20}/>
             </a>
@@ -88,7 +92,7 @@ export default function Footer() {
             <li><Link href="/" className="hover:text-white transition-colors">{text.links.home}</Link></li>
             <li><Link href="/box-builder" className="hover:text-white transition-colors">{text.links.build}</Link></li>
             <li><Link href="/gift" className="hover:text-white transition-colors">{text.links.gift}</Link></li>
-            <li><Link href="/tracking" className="hover:text-white transition-colors">{text.links.track}</Link></li>
+            <li><Link href="/products" className="hover:text-white transition-colors">{text.links.track}</Link></li> {/* اصلاح لینک ترک */}
           </ul>
         </div>
 
@@ -109,8 +113,18 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 mt-12 pt-8 text-center text-gray-500 text-sm">
-        © 2026 VELA. {text.copyright} | Sail Through It
+      {/* بخش کپی‌رایت و لینک‌های قانونی (آپدیت شده) */}
+      <div className="border-t border-white/10 mt-12 pt-8 px-6 max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm gap-4">
+        <div className="text-gray-500 text-center md:text-start">
+           © 2026 VELA. {text.copyright} | Sail Through It
+        </div>
+        
+        {/* لینک‌های قانونی جدید */}
+        <div className="flex flex-wrap justify-center gap-6 text-gray-400">
+            <Link href="/privacy" className="hover:text-[#D4AF37] transition-colors">{text.legal.privacy}</Link>
+            <Link href="/terms" className="hover:text-[#D4AF37] transition-colors">{text.legal.terms}</Link>
+            <Link href="/refund" className="hover:text-[#D4AF37] transition-colors">{text.legal.refund}</Link>
+        </div>
       </div>
     </footer>
   );
