@@ -22,7 +22,7 @@ export default function Footer() {
       contact: 'تماس با ما',
       links: { home: 'خانه', build: 'ساخت باکس', gift: 'کارت هدیه', track: 'پیگیری سفارش' },
       copyright: 'تمامی حقوق محفوظ است.',
-      location: 'آلانیا، ترکیه', // اصلاح شده برای شاپیر
+      location: 'آلانیا، ترکیه',
       legal: { privacy: 'حریم خصوصی', terms: 'شرایط و قوانین', refund: 'رویه بازگشت کالا' }
     },
     EN: {
@@ -31,7 +31,7 @@ export default function Footer() {
       contact: 'Contact Us',
       links: { home: 'Home', build: 'Build Box', gift: 'Gift Card', track: 'Order Tracking' },
       copyright: 'All rights reserved.',
-      location: 'Alanya, Turkey', // Updated for Shopier
+      location: 'Alanya, Turkey',
       legal: { privacy: 'Privacy Policy', terms: 'Terms of Service', refund: 'Refund Policy' }
     },
     TR: {
@@ -40,7 +40,7 @@ export default function Footer() {
       contact: 'İletişim',
       links: { home: 'Ana Sayfa', build: 'Kutu Yap', gift: 'Hediye Kartı', track: 'Sipariş Takibi' },
       copyright: 'Tüm hakları saklıdır.',
-      location: 'Alanya, Türkiye', // Güncellendi
+      location: 'Alanya, Türkiye',
       legal: { privacy: 'Gizlilik Politikası', terms: 'Hizmet Şartları', refund: 'İade Politikası' }
     },
     RU: {
@@ -49,7 +49,7 @@ export default function Footer() {
       contact: 'Контакты',
       links: { home: 'Главная', build: 'Собрать бокс', gift: 'Подарочная карта', track: 'Отслеживание' },
       copyright: 'Все права защищены.',
-      location: 'Алания, Турция', // Обновлено
+      location: 'Алания, Турция',
       legal: { privacy: 'Конфиденциальность', terms: 'Условия использования', refund: 'Возврат товара' }
     }
   };
@@ -68,7 +68,7 @@ export default function Footer() {
             {text.desc}
           </p>
           <div className="flex gap-4">
-            {/* ✅ لینک اینستاگرام */}
+            {/* لینک اینستاگرام */}
             <a 
               href="https://instagram.com/velafemtech" 
               target="_blank" 
@@ -92,7 +92,9 @@ export default function Footer() {
             <li><Link href="/" className="hover:text-white transition-colors">{text.links.home}</Link></li>
             <li><Link href="/box-builder" className="hover:text-white transition-colors">{text.links.build}</Link></li>
             <li><Link href="/gift" className="hover:text-white transition-colors">{text.links.gift}</Link></li>
-            <li><Link href="/products" className="hover:text-white transition-colors">{text.links.track}</Link></li> {/* اصلاح لینک ترک */}
+            <li><Link href="/tracking" className="hover:text-white transition-colors">{text.links.track}</Link></li>
+            {/* ✅ لینک جدید صفحه تماس با ما */}
+            <li><Link href="/contact" className="hover:text-[#D4AF37] transition-colors font-bold">{text.contact}</Link></li>
           </ul>
         </div>
 
@@ -102,8 +104,8 @@ export default function Footer() {
           <ul className="space-y-4 text-gray-400">
             <li className="flex items-center gap-2">
                 <Mail size={16} className={isRTL ? 'ml-2' : 'mr-2'}/>
-                <a href="mailto:VelaFemTech@gmail.com" className="hover:text-[#D4AF37] transition-colors" dir="ltr">
-                  VelaFemTech@gmail.com
+                <a href="mailto:velafemtech@gmail.com" className="hover:text-[#D4AF37] transition-colors" dir="ltr">
+                  velafemtech@gmail.com
                 </a>
             </li>
             <li className="flex items-center gap-2">
@@ -113,13 +115,12 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* بخش کپی‌رایت و لینک‌های قانونی (آپدیت شده) */}
+      {/* بخش کپی‌رایت و لینک‌های قانونی */}
       <div className="border-t border-white/10 mt-12 pt-8 px-6 max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center text-sm gap-4">
         <div className="text-gray-500 text-center md:text-start">
            © 2026 VELA. {text.copyright} | Sail Through It
         </div>
         
-        {/* لینک‌های قانونی جدید */}
         <div className="flex flex-wrap justify-center gap-6 text-gray-400">
             <Link href="/privacy" className="hover:text-[#D4AF37] transition-colors">{text.legal.privacy}</Link>
             <Link href="/terms" className="hover:text-[#D4AF37] transition-colors">{text.legal.terms}</Link>
