@@ -16,7 +16,7 @@ export default function TermsPage() {
       shipTitle: "3. Shipping",
       shipText: "We currently ship primarily within Turkey and select regions. Shipping times are estimates and may vary. We are not responsible for delays caused by customs or local carriers.",
       contactTitle: "4. Contact Us",
-      contactText: "For any questions regarding these terms, please contact us at hello@velacare.com."
+      contactText: "For any questions regarding these terms, please contact us at velafemtech@gmail.com."
     },
     FA: {
       title: "شرایط و قوانین استفاده",
@@ -28,7 +28,7 @@ export default function TermsPage() {
       shipTitle: "۳. ارسال",
       shipText: "ما در حال حاضر عمدتاً در داخل ترکیه و مناطق منتخب ارسال داریم. زمان‌های ارسال تخمینی هستند و ممکن است متغیر باشند.",
       contactTitle: "۴. تماس با ما",
-      contactText: "برای هرگونه سوال در مورد این شرایط، لطفاً با ما از طریق ایمیل hello@velacare.com تماس بگیرید."
+      contactText: "برای هرگونه سوال در مورد این شرایط، لطفاً با ما از طریق ایمیل velafemtech@gmail.com تماس بگیرید."
     },
     TR: {
       title: "Hizmet Şartları",
@@ -40,7 +40,7 @@ export default function TermsPage() {
       shipTitle: "3. Kargo",
       shipText: "Şu anda öncelikle Türkiye içinde ve belirli bölgelere gönderim yapıyoruz. Gönderim süreleri tahminidir.",
       contactTitle: "4. İletişim",
-      contactText: "Bu şartlarla ilgili sorularınız için lütfen hello@velacare.com adresinden bizimle iletişime geçin."
+      contactText: "Bu şartlarla ilgili sorularınız için lütfen velafemtech@gmail.com adresinden bizimle iletişime geçin."
     },
     RU: {
       title: "Условия использования",
@@ -52,7 +52,7 @@ export default function TermsPage() {
       shipTitle: "3. Доставка",
       shipText: "Мы осуществляем доставку преимущественно по Турции. Сроки доставки являются приблизительными.",
       contactTitle: "4. Контакты",
-      contactText: "По всем вопросам обращайтесь на hello@velacare.com."
+      contactText: "По всем вопросам обращайтесь на velafemtech@gmail.com."
     }
   };
 
