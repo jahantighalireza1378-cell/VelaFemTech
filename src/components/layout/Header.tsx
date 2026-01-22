@@ -13,6 +13,7 @@ export default function Header() {
   const translations: any = {
     EN: {
       products: 'Products',
+      contact: 'Contact Us', // ✅ اضافه شد
       story: 'Our Story',
       dashboard: 'My Dashboard',
       cart: 'Cart',
@@ -21,6 +22,7 @@ export default function Header() {
     },
     FA: {
       products: 'محصولات',
+      contact: 'تماس با ما', // ✅ اضافه شد
       story: 'داستان ما',
       dashboard: 'داشبورد من',
       cart: 'سبد خرید',
@@ -29,6 +31,7 @@ export default function Header() {
     },
     TR: {
       products: 'Ürünler',
+      contact: 'İletişim', // ✅ اضافه شد
       story: 'Hikayemiz',
       dashboard: 'Panelim',
       cart: 'Sepetim',
@@ -37,6 +40,7 @@ export default function Header() {
     },
     RU: {
       products: 'Продукты',
+      contact: 'Контакты', // ✅ اضافه شد
       story: 'О нас',
       dashboard: 'Мой кабинет',
       cart: 'Корзина',
@@ -46,13 +50,11 @@ export default function Header() {
   };
 
   useEffect(() => {
-    // خواندن زبان ذخیره شده
     const savedLang = localStorage.getItem('vela-lang');
     if (savedLang) {
       setLang(savedLang);
     }
     
-    // گوش دادن به تغییرات زبان از صفحات دیگر
     const handleLangChange = () => {
         const newLang = localStorage.getItem('vela-lang');
         if (newLang) setLang(newLang);
@@ -68,8 +70,6 @@ export default function Header() {
     
     setLang(nextLang);
     localStorage.setItem('vela-lang', nextLang);
-    
-    // اطلاع به کل سایت برای تغییر زبان
     window.dispatchEvent(new Event('vela-language-change'));
   };
 
@@ -87,10 +87,15 @@ export default function Header() {
 
         {/* Desktop Nav */}
         <nav className={`hidden md:flex gap-8 text-[#1A2A3A]/80 font-medium items-center ${isRTL ? 'font-sans' : ''}`}>
-          {/* لینک محصولات با افکت ویژه */}
-          <Link href="/products" className="hover:text-[#D4AF37] transition relative group">
+          {/* لینک محصولات */}
+          <Link href="/products" className="hover:text-[#D4AF37] transition relative group font-bold text-[#1A2A3A]">
              {t.products}
              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#D4AF37] transition-all group-hover:w-full"></span>
+          </Link>
+
+          {/* ✅ لینک تماس با ما (جدید) */}
+          <Link href="/contact" className="hover:text-[#D4AF37] transition">
+            {t.contact}
           </Link>
 
           <Link href="/about" className="hover:text-[#D4AF37] transition">{t.story}</Link>
@@ -119,10 +124,8 @@ export default function Header() {
 
             <SignedIn>
                 <div className="flex items-center gap-4">
-                    {/* آیکون سبد خرید - لینک به چک‌اوت یا محصولات */}
                     <Link href="/products" className="relative p-2 text-[#1A2A3A] hover:text-[#D4AF37] transition">
                         <ShoppingBag size={24}/>
-                        {/* <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span> */}
                     </Link>
                     <UserButton afterSignOutUrl="/"/>
                 </div>
@@ -140,6 +143,9 @@ export default function Header() {
         <div className={`md:hidden bg-white border-t border-gray-100 absolute w-full p-6 flex flex-col gap-6 shadow-xl h-screen ${isRTL ? 'text-right' : 'text-left'}`}>
           <Link href="/products" className="text-xl font-medium text-[#1A2A3A]" onClick={() => setIsOpen(false)}>{t.products}</Link>
           
+          {/* ✅ لینک تماس با ما در موبایل (جدید) */}
+          <Link href="/contact" className="text-xl font-medium text-[#1A2A3A]" onClick={() => setIsOpen(false)}>{t.contact}</Link>
+
           <SignedIn>
              <Link href="/dashboard" className="flex items-center gap-3 text-xl font-medium text-[#D4AF37]" onClick={() => setIsOpen(false)}>
                 <LayoutDashboard size={20} />
