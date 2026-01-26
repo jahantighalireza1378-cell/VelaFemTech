@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+// 👇 این خط برای مجبور کردن ورسل به آپدیت اضافه شد (Vercel Cache Buster)
+// FORCE_UPDATE_ID: v3_final_check
 import { supabase } from '@/lib/supabase';
 import crypto from 'crypto';
 
