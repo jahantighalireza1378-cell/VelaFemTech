@@ -1,253 +1,280 @@
 'use client';
+
 import { useState, useEffect } from 'react';
-import Header from '@/components/layout/Header';
+import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CreditCard, MapPin, User, Phone, CheckCircle, ShieldCheck, CalendarClock, Package, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Trash2, Lock, CreditCard } from 'lucide-react';
 
 export default function CheckoutPage() {
+  const { cart, removeFromCart, total, clearCart } = useCart();
   const router = useRouter();
-  const [lang, setLang] = useState('FA');
-  const [order, setOrder] = useState<any>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // خواندن زبان و اطلاعات سبد خرید از حافظه مرورگر
-    setLang(localStorage.getItem('vela-lang') || 'FA');
-    
-    try {
-        const savedOrder = localStorage.getItem('vela-final-order');
-        if (savedOrder) {
-            setOrder(JSON.parse(savedOrder));
-        }
-    } catch (e) {
-        console.error("Error reading order:", e);
-    }
+  // فرم اطلاعات مشتری
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    country: 'Turkey',
+    zip: '',
+  });
 
-    const handleLangChange = () => setLang(localStorage.getItem('vela-lang') || 'FA');
-    window.addEventListener('vela-language-change', handleLangChange);
-    return () => window.removeEventListener('vela-language-change', handleLangChange);
-  }, []);
-
-  const t: any = {
-    FA: {
-      back: 'بازگشت', title: 'تکمیل خرید', shippingTitle: 'اطلاعات ارسال', summaryTitle: 'خلاصه اشتراک',
-      inputs: { name: 'نام و نام خانوادگی', phone: 'شماره تماس', address: 'آدرس دقیق پستی' },
-      payBtn: 'تایید و پرداخت', processing: 'در حال پردازش...', secure: 'پرداخت امن زرین‌پال',
-      planLabel: 'طرح انتخابی:', itemsLabel: 'اقلام افزوده:', totalLabel: 'مبلغ قابل پرداخت:',
-      cycles: { '1': '۱ ماهه', '3': '۳ ماهه', '6': '۶ ماهه' },
-      success: { title: 'سفارش ثبت شد!', desc: 'اطلاعات سفارش برای شما پیامک شد.', tracking: 'شماره پیگیری: VELA-8829' },
-      currency: 'تومان'
+  // دیکشنری ترجمه
+  const t = {
+    en: {
+      title: 'Checkout',
+      details: 'Shipping Details',
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      email: 'Email Address',
+      phone: 'Phone Number',
+      address: 'Full Address',
+      city: 'City',
+      pay: 'Pay Securely',
+      summary: 'Order Summary',
+      total: 'Total',
+      empty: 'Your cart is empty.',
+      back: 'Go back to shop',
+      processing: 'Connecting to Bank...',
     },
-    EN: { back: 'Back', title: 'Checkout', shippingTitle: 'Shipping Details', summaryTitle: 'Order Summary', inputs: { name: 'Full Name', phone: 'Phone', address: 'Address' }, payBtn: 'Confirm & Pay', processing: 'Processing...', secure: 'Secure Payment', planLabel: 'Plan:', itemsLabel: 'Add-ons:', totalLabel: 'Total:', cycles: { '1': 'Monthly', '3': '3 Months', '6': '6 Months' }, success: { title: 'Success!', desc: 'Order placed successfully.', tracking: 'Order ID: 8829' }, currency: 'TL' },
-    TR: { back: 'Geri', title: 'Ödeme', shippingTitle: 'Teslimat Bilgileri', summaryTitle: 'Sipariş Özeti', inputs: { name: 'Ad Soyad', phone: 'Telefon', address: 'Adres' }, payBtn: 'Onayla ve Öde', processing: 'İşleniyor...', secure: 'Güvenli Ödeme', planLabel: 'Plan:', itemsLabel: 'Ekstralar:', totalLabel: 'Toplam:', cycles: { '1': 'Aylık', '3': '3 Aylık', '6': '6 Aylık' }, success: { title: 'Başarılı!', desc: 'Sipariş alındı.', tracking: 'Sipariş No: 8829' }, currency: 'TL' },
-    RU: { back: 'Назад', title: 'Оплата', shippingTitle: 'Адрес', summaryTitle: 'Итог', inputs: { name: 'ФИО', phone: 'Телефон', address: 'Адрес' }, payBtn: 'Оплатить', processing: 'Обработка...', secure: 'Безопасно', planLabel: 'План:', itemsLabel: 'Доп:', totalLabel: 'Итого:', cycles: { '1': '1 Мес', '3': '3 Мес', '6': '6 Мес' }, success: { title: 'Успешно!', desc: 'Заказ принят.', tracking: 'ID: 8829' }, currency: 'TL' }
+    fa: {
+      title: 'تسویه حساب',
+      details: 'اطلاعات ارسال',
+      firstName: 'نام',
+      lastName: 'نام خانوادگی',
+      email: 'آدرس ایمیل',
+      phone: 'شماره تماس',
+      address: 'آدرس کامل',
+      city: 'شهر',
+      pay: 'پرداخت امن',
+      summary: 'خلاصه سفارش',
+      total: 'مجموع',
+      empty: 'سبد خرید شما خالی است.',
+      back: 'بازگشت به فروشگاه',
+      processing: 'در حال اتصال به بانک...',
+    },
   };
 
-  const text = t[lang] || t.FA;
-  const currencyLabel = order?.market === 'IR' ? 'تومان' : 'TL';
-  
-  const formatPrice = (amount: number) => {
-      try {
-        return new Intl.NumberFormat(lang === 'FA' ? 'fa-IR' : 'en-US').format(amount);
-      } catch (e) { return amount; }
-  };
+  const lang = 'en'; // یا می‌توانید از Context زبان بگیرید
+  const text = t[lang] || t.en;
 
-  const handleInputChange = (e: any) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  // اگر سبد خرید خالی بود (اختیاری)
+  useEffect(() => {
+    if (cart.length === 0) {
+       // router.push('/'); 
+    }
+  }, [cart, router]);
 
-  const handlePayment = async (e: any) => {
+  const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.address) {
-        alert(lang === 'FA' ? 'لطفا تمام فیلدها را پر کنید' : 'Please fill all fields');
-        return;
-    }
+    setLoading(true);
 
-    setIsProcessing(true);
-
-    // ۱. آماده‌سازی داده برای تلگرام
-    const telegramData = {
-        orderId: Math.floor(1000 + Math.random() * 9000),
-        customer: formData,
-        total: `${formatPrice(order.totalPrice)} ${currencyLabel}`,
-        cycle: text.cycles[order.cycle || '1'],
-        items: {
-            packageName: order.title,
-            extras: [
-                order.finalQuantities?.hotWaterBottle?.count > 0 ? { name: 'کیسه آب گرم', count: order.finalQuantities.hotWaterBottle.count } : null,
-                order.finalQuantities?.chocolate?.count > 0 ? { name: 'شکلات', count: order.finalQuantities.chocolate.count } : null,
-                order.finalQuantities?.tea?.count > 0 ? { name: 'دمنوش', count: order.finalQuantities.tea.count } : null
-            ].filter(Boolean)
-        }
-    };
-
-    // ۲. ارسال به تلگرام
     try {
-        await fetch('/api/telegram', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(telegramData)
-        });
-    } catch (err) {
-        console.error("Telegram send failed but proceeding with order:", err);
-    }
+      // 1. ارسال اطلاعات به API
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            country: formData.country,
+            zip: formData.zip,
+          },
+          items: cart,
+          total: total,
+          currency: 'TRY'
+        }),
+      });
 
-    // ۳. شبیه‌سازی درگاه و موفقیت
-    setTimeout(() => {
-        setIsSuccess(true);
-        setIsProcessing(false);
-        localStorage.removeItem('vela-cart');
-        localStorage.removeItem('vela-final-order');
-    }, 1500);
+      const result = await response.json();
+
+      if (result.success) {
+        // ✅ سبد خرید را خالی می‌کنیم چون سفارش ثبت شده
+        clearCart();
+
+        // ✅ بررسی می‌کنیم آیا فرم بانک دریافت شده است؟
+        if (result.formHtml) {
+            // این کد جادویی است که صفحه را پاک می‌کند و فرم شاپیر را می‌نویسد و ارسال می‌کند
+            document.open();
+            document.write(result.formHtml);
+            document.close();
+        } else {
+            // اگر به هر دلیلی فرم نیامد
+            alert('Order Created successfully!');
+            router.push('/');
+        }
+
+      } else {
+        alert('Error: ' + result.error);
+        setLoading(false); // اگر خطا داد، دکمه را دوباره فعال کن
+      }
+    } catch (error) {
+      console.error('Payment Error:', error);
+      alert('Something went wrong. Please try again.');
+      setLoading(false);
+    }
   };
 
-  // اگر هنوز اطلاعات سفارش لود نشده، لودینگ نشان بده
-  if (!order && !isSuccess) {
-      return (
-          <div className="min-h-screen bg-vela-marble flex items-center justify-center">
-             <div className="text-vela-navy animate-pulse">Loading Order Details...</div>
-          </div>
-      );
-  }
-
-  // صفحه موفقیت
-  if (isSuccess) {
+  if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-vela-marble">
-        <Header />
-        <div className="flex flex-col items-center justify-center h-[80vh] px-4 text-center animate-fade-in-up">
-          <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-green-100/50">
-            <CheckCircle size={48} strokeWidth={2.5} />
-          </div>
-          <h1 className="text-3xl font-serif text-vela-navy font-bold mb-3">{text.success.title}</h1>
-          <p className="text-gray-600 text-lg mb-8 max-w-md mx-auto">{text.success.desc}</p>
-          <div className="bg-white px-8 py-4 rounded-2xl border border-dashed border-gray-300 font-mono text-gray-500 tracking-wider shadow-sm">
-            {text.success.tracking}
-          </div>
-          <button onClick={() => router.push('/')} className="mt-10 px-8 py-3 rounded-xl bg-white border border-vela-navy/10 text-vela-navy font-bold hover:bg-vela-navy hover:text-white transition-all shadow-sm">
-            {lang === 'FA' ? 'بازگشت به خانه' : 'Back to Home'}
-          </button>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F9F7F2]">
+        <h2 className="text-2xl font-bold text-[#1A2A3A] mb-4">{text.empty}</h2>
+        <button onClick={() => router.push('/')} className="bg-[#D4AF37] text-white px-6 py-2 rounded-xl">
+          {text.back}
+        </button>
       </div>
     );
   }
 
-  // صفحه اصلی پرداخت
-  const hasAddons = order.finalQuantities && (
-      order.finalQuantities.chocolate?.count > 0 || 
-      order.finalQuantities.tea?.count > 0 ||
-      order.finalQuantities.hotWaterBottle?.count > 0
-  );
-
   return (
-    <div className="min-h-screen bg-vela-marble pb-20">
-      <Header />
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-400 hover:text-vela-navy mb-8 transition-colors group">
-          <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><ArrowRight size={16} className={lang === 'FA' ? '' : 'rotate-180'} /></div>
-          <span className="text-sm font-medium">{text.back}</span>
-        </button>
+    <div className="min-h-screen bg-[#F9F7F2] py-12 px-4 lg:px-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
+        
+        {/* ستون چپ: فرم اطلاعات */}
+        <div className="bg-white p-6 lg:p-8 rounded-2xl shadow-sm border border-[#E5E7EB]">
+          <h1 className="text-2xl font-bold text-[#1A2A3A] mb-6 flex items-center gap-2">
+            <Lock className="w-5 h-5 text-[#D4AF37]" />
+            {text.details}
+          </h1>
 
-        <h1 className="text-3xl font-serif text-vela-navy font-bold mb-8">{text.title}</h1>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* فرم اطلاعات */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-3xl p-8 shadow-card border border-vela-gold/10">
-              <div className="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
-                <div className="bg-vela-gold/10 p-2 rounded-lg text-vela-gold"><MapPin size={20} /></div>
-                <h2 className="text-xl font-bold text-vela-navy">{text.shippingTitle}</h2>
+          <form onSubmit={handlePayment} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">{text.firstName}</label>
+                <input
+                  required
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                  className="w-full p-3 rounded-lg border bg-gray-50 focus:border-[#D4AF37] outline-none"
+                />
               </div>
-              
-              <form onSubmit={handlePayment} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-600 pr-1">{text.inputs.name}</label>
-                    <div className="relative">
-                        <User className="absolute right-4 top-3.5 text-gray-400 w-5 h-5 pointer-events-none" />
-                        <input required name="name" onChange={handleInputChange} type="text" className="w-full px-12 py-3.5 rounded-xl border border-gray-200 focus:border-vela-gold outline-none bg-gray-50/50 focus:bg-white transition-all" placeholder="..." />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-600 pr-1">{text.inputs.phone}</label>
-                    <div className="relative">
-                        <Phone className="absolute right-4 top-3.5 text-gray-400 w-5 h-5 pointer-events-none" />
-                        <input required name="phone" onChange={handleInputChange} type="tel" className="w-full px-12 py-3.5 rounded-xl border border-gray-200 focus:border-vela-gold outline-none bg-gray-50/50 focus:bg-white transition-all" placeholder="09..." />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-600 pr-1">{text.inputs.address}</label>
-                  <textarea required name="address" onChange={handleInputChange} rows={3} className="w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:border-vela-gold outline-none bg-gray-50/50 focus:bg-white transition-all" placeholder="..."></textarea>
-                </div>
-                <button type="submit" className="hidden"></button>
-              </form>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">{text.lastName}</label>
+                <input
+                  required
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                  className="w-full p-3 rounded-lg border bg-gray-50 focus:border-[#D4AF37] outline-none"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* خلاصه سفارش */}
-          <div className="lg:col-span-1">
-            <div className="bg-vela-navy text-white rounded-3xl p-8 shadow-2xl sticky top-24 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-40 h-40 bg-vela-gold/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              
-              <h2 className="text-xl font-bold mb-6 font-serif border-b border-white/10 pb-4 relative z-10 flex items-center gap-2">
-                 <Package size={20} className="text-vela-gold" />
-                 {text.summaryTitle}
-              </h2>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">{text.email}</label>
+              <input
+                required
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full p-3 rounded-lg border bg-gray-50 focus:border-[#D4AF37] outline-none"
+              />
+            </div>
 
-              <div className="space-y-4 mb-8 relative z-10 text-sm">
-                <div className="flex justify-between items-center text-white/90">
-                    <span className="opacity-80">Package Name</span>
-                    <span className="font-bold">{order.title}</span>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">{text.phone}</label>
+              <input
+                required
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                className="w-full p-3 rounded-lg border bg-gray-50 focus:border-[#D4AF37] outline-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-gray-700">{text.address}</label>
+              <textarea
+                required
+                rows={3}
+                value={formData.address}
+                onChange={(e) => setFormData({...formData, address: e.target.value})}
+                className="w-full p-3 rounded-lg border bg-gray-50 focus:border-[#D4AF37] outline-none resize-none"
+              />
+            </div>
+            
+            <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">{text.city}</label>
+                <input
+                  required
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => setFormData({...formData, city: e.target.value})}
+                  className="w-full p-3 rounded-lg border bg-gray-50 focus:border-[#D4AF37] outline-none"
+                />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full mt-6 bg-[#1A2A3A] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#D4AF37] transition-all flex justify-center items-center gap-2"
+            >
+              {loading ? (
+                <span>{text.processing}</span>
+              ) : (
+                <>
+                  <CreditCard className="w-5 h-5" />
+                  {text.pay} - {total} TL
+                </>
+              )}
+            </button>
+            
+            <p className="text-xs text-center text-gray-400 mt-4">
+              Secured by Shopier Payments. Returns accepted within 14 days.
+            </p>
+          </form>
+        </div>
+
+        {/* ستون راست: خلاصه سفارش */}
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#E5E7EB]">
+            <h2 className="text-xl font-bold text-[#1A2A3A] mb-4">{text.summary}</h2>
+            <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+              {cart.map((item: any, index: number) => (
+                <div key={index} className="flex gap-4 items-center border-b border-gray-100 pb-4 last:border-0">
+                  <div className="w-16 h-16 bg-gray-100 rounded-lg relative overflow-hidden flex-shrink-0">
+                    {item.image ? (
+                        <Image src={item.image} alt={item.name} fill className="object-cover" />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Img</div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-[#1A2A3A]">{item.name}</h3>
+                    <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-[#D4AF37]">{item.price} TL</p>
+                    <button 
+                      onClick={() => removeFromCart(item.id)}
+                      className="text-xs text-red-400 hover:text-red-600 mt-1 flex items-center gap-1 justify-end"
+                    >
+                      <Trash2 className="w-3 h-3" /> Remove
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="flex justify-between items-center bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/5">
-                    <span className="flex items-center gap-2 opacity-80"><CalendarClock size={16}/> {text.planLabel}</span>
-                    <span className="font-bold text-vela-gold">{text.cycles[order.cycle || '1']}</span>
-                </div>
+              ))}
+            </div>
 
-                {hasAddons && (
-                    <div className="pt-2 border-t border-white/10 mt-2">
-                      <span className="text-xs opacity-60 mb-2 block uppercase tracking-wider">{text.itemsLabel}</span>
-                      <div className="flex flex-wrap gap-2">
-                        {order.finalQuantities?.hotWaterBottle?.count > 0 && <span className="bg-vela-gold/20 border border-vela-gold/30 px-2 py-1 rounded text-xs text-vela-gold font-medium">+ Hot Water Bottle</span>}
-                        {order.finalQuantities?.chocolate?.count > 0 && <span className="bg-white/10 px-2 py-1 rounded text-xs">+ Chocolate</span>}
-                        {order.finalQuantities?.tea?.count > 0 && <span className="bg-white/10 px-2 py-1 rounded text-xs">+ Tea</span>}
-                      </div>
-                   </div>
-                )}
-              </div>
-
-              <div className="border-t border-white/20 pt-6 mb-8 relative z-10">
-                <div className="flex justify-between items-end">
-                   <span className="text-white/60 text-sm mb-1">{text.totalLabel}</span>
-                   <div className="text-3xl font-bold font-sans tracking-tight">
-                     {formatPrice(order.totalPrice)} 
-                     <span className="text-lg font-light opacity-80 ml-1">{currencyLabel}</span>
-                   </div>
-                </div>
-              </div>
-              
-              <button 
-                onClick={handlePayment} 
-                disabled={isProcessing} 
-                className="w-full py-4 bg-gradient-to-r from-vela-gold to-[#dcb858] text-vela-navy rounded-xl font-bold hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all active:scale-95 flex justify-center items-center gap-2 relative z-10 disabled:opacity-70 disabled:cursor-not-allowed group"
-              >
-                {isProcessing ? (
-                    <><Loader2 size={20} className="animate-spin" /> {text.processing}</>
-                ) : (
-                    <>{text.payBtn} <CreditCard size={18} className="group-hover:translate-x-1 transition-transform" /></>
-                )}
-              </button>
-              
-              <div className="mt-5 flex justify-center items-center gap-2 text-white/40 text-xs relative z-10">
-                 <ShieldCheck size={12} /><span>{text.secure}</span>
+            <div className="border-t border-dashed border-gray-300 my-4 pt-4">
+              <div className="flex justify-between items-center text-lg font-bold text-[#1A2A3A]">
+                <span>{text.total}</span>
+                <span>{total} TL</span>
               </div>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

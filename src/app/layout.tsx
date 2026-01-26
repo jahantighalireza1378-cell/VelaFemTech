@@ -2,7 +2,9 @@ import ClerkWrapper from '../components/ClerkWrapper';
 import './globals.css';
 import { Inter } from 'next/font/google';
 import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer'; // 👈 ایمپورت فوتر
+import Footer from '../components/layout/Footer';
+// 👇 ۱. اضافه کردن ایمپورت سبد خرید
+import { CartProvider } from '@/context/CartContext'; 
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,18 +22,21 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} bg-[#F9F7F2]`}>
         <ClerkWrapper>
-          
-          {/* هدر ثابت بالا */}
-          <Header />
-          
-          {/* بدنه اصلی سایت */}
-          <main className="pt-28 min-h-screen">
-            {children}
-          </main>
+          {/* 👇 ۲. تمام محتوا باید داخل این تگ باشد تا سبد خرید کار کند */}
+          <CartProvider>
+            
+            {/* هدر ثابت بالا */}
+            <Header />
+            
+            {/* بدنه اصلی سایت */}
+            <main className="pt-28 min-h-screen">
+              {children}
+            </main>
 
-          {/* 👇 فوتر اصلی که گم شده بود */}
-          <Footer />
+            {/* فوتر اصلی */}
+            <Footer />
 
+          </CartProvider>
         </ClerkWrapper>
       </body>
     </html>
