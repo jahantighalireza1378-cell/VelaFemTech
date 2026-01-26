@@ -7,40 +7,32 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SHOPIER_API_KEY = process.env.SHOPIER_API_KEY;
 const SHOPIER_API_SECRET = process.env.SHOPIER_API_SECRET;
 
-// تابع ساخت فرم
-function generateShopierForm(order: any, customer: any, total: any) {
-  // اگر مشتری ناقص باشد، مقادیر پیش‌فرض می‌گذارد تا فرم نسوزد
-  const firstName = customer?.first_name || 'Guest';
-  const lastName = customer?.last_name || '';
-  const email = customer?.email || 'no-email@test.com';
-  const phone = customer?.phone || '0000000000';
-  const address = customer?.address || 'No Address';
-  const city = customer?.city || 'Istanbul';
-  const country = customer?.country || 'Turkey';
-  const zip = customer?.zip || '00000';
-
+function generateShopierForm(orderId: any, customer: any, total: any) {
+  // اگر اسم کامل بود، آن را جدا کن
+  let firstName = customer.first_name || 'Guest';
+  let lastName = customer.last_name || '';
+  
+  // ساخت فرمت استاندارد شاپیر
   const args = {
     API_KEY: SHOPIER_API_KEY,
     website_index: 1,
-    platform_order_id: order.id,
+    platform_order_id: orderId,
     product_name: 'Vela Order',
     product_type: 1,
     buyer_name: firstName,
     buyer_surname: lastName,
-    buyer_email: email,
-    buyer_account_age: 0,
-    buyer_id_nr: 0,
-    buyer_phone: phone,
-    billing_address: address,
-    billing_city: city,
-    billing_country: country,
-    billing_postcode: zip,
-    shipping_address: address,
-    shipping_city: city,
-    shipping_country: country,
-    shipping_postcode: zip,
+    buyer_email: customer.email || 'guest@vela.com',
+    buyer_phone: customer.phone || '0000000000',
+    billing_address: customer.address || 'No Address',
+    billing_city: customer.city || 'Istanbul',
+    billing_country: customer.country || 'Turkey',
+    billing_postcode: customer.zip || '00000',
+    shipping_address: customer.address || 'No Address',
+    shipping_city: customer.city || 'Istanbul',
+    shipping_country: customer.country || 'Turkey',
+    shipping_postcode: customer.zip || '00000',
     total_order_value: total,
-    currency: 0,
+    currency: 0, // 0 = TRY
     platform: 0,
     is_in_frame: 0,
     current_language: 0,
@@ -55,33 +47,10 @@ function generateShopierForm(order: any, customer: any, total: any) {
   return `
     <!DOCTYPE html>
     <html>
-    <head><title>Redirecting...</title></head>
+    <head><title>Redirecting to Bank...</title></head>
     <body onload="document.forms[0].submit()">
       <form action="https://www.shopier.com/ShowProduct/api_pay4.php" method="post">
-        <input type="hidden" name="API_KEY" value="${args.API_KEY}">
-        <input type="hidden" name="website_index" value="${args.website_index}">
-        <input type="hidden" name="platform_order_id" value="${args.platform_order_id}">
-        <input type="hidden" name="product_name" value="${args.product_name}">
-        <input type="hidden" name="product_type" value="${args.product_type}">
-        <input type="hidden" name="buyer_name" value="${args.buyer_name}">
-        <input type="hidden" name="buyer_surname" value="${args.buyer_surname}">
-        <input type="hidden" name="buyer_email" value="${args.buyer_email}">
-        <input type="hidden" name="buyer_phone" value="${args.buyer_phone}">
-        <input type="hidden" name="billing_address" value="${args.billing_address}">
-        <input type="hidden" name="billing_city" value="${args.billing_city}">
-        <input type="hidden" name="billing_country" value="${args.billing_country}">
-        <input type="hidden" name="billing_postcode" value="${args.billing_postcode}">
-        <input type="hidden" name="shipping_address" value="${args.shipping_address}">
-        <input type="hidden" name="shipping_city" value="${args.shipping_city}">
-        <input type="hidden" name="shipping_country" value="${args.shipping_country}">
-        <input type="hidden" name="shipping_postcode" value="${args.shipping_postcode}">
-        <input type="hidden" name="total_order_value" value="${args.total_order_value}">
-        <input type="hidden" name="currency" value="${args.currency}">
-        <input type="hidden" name="platform" value="${args.platform}">
-        <input type="hidden" name="is_in_frame" value="${args.is_in_frame}">
-        <input type="hidden" name="current_language" value="${args.current_language}">
-        <input type="hidden" name="modul_version" value="${args.modul_version}">
-        <input type="hidden" name="random_nr" value="${args.random_nr}">
+        ${Object.entries(args).map(([key, value]) => `<input type="hidden" name="${key}" value="${value}">`).join('')}
         <input type="hidden" name="signature" value="${signature}">
       </form>
     </body>
@@ -92,43 +61,56 @@ function generateShopierForm(order: any, customer: any, total: any) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("📥 Incoming Request Body:", body); // <--- لاگ برای دیباگ
+    console.log("📥 Payment Request:", body);
 
-    // تلاش برای پیدا کردن اطلاعات مشتری (چه فرمت جدید، چه قدیم)
-    let customer = body.customer;
+    let finalCustomer: any = {};
+    let finalItems: any = [];
+    let finalTotal = 0;
 
-    // اگر فرمت قدیم بود (بدون customer)، دستی میسازیم
-    if (!customer) {
-        console.warn("⚠️ Old format detected or missing customer data");
-        if (body.firstName || body.first_name) {
-             customer = {
-                first_name: body.firstName || body.first_name || 'Unknown',
-                last_name: body.lastName || body.last_name || '',
-                email: body.email || '',
-                phone: body.phone || '',
-                address: body.address || '',
-                city: body.city || '',
-                country: body.country || ''
-             };
-        } else {
-            // اگر واقعا هیچ دیتایی نبود، ارور بده (کرش نکن)
-            return NextResponse.json({ error: "Missing customer data" }, { status: 400 });
-        }
+    // --- سناریو ۱: خرید از سبد خرید (Standard Cart) ---
+    if (body.customer) {
+        finalCustomer = body.customer;
+        finalItems = body.items;
+        finalTotal = body.total;
+    } 
+    // --- سناریو ۲: خرید باکس/اشتراک (Box Builder) ---
+    else if (body.formData) {
+        // تبدیل فرمت "formData" به فرمت استاندارد "customer"
+        const nameParts = (body.formData.name || 'Guest User').split(' ');
+        finalCustomer = {
+            first_name: nameParts[0],
+            last_name: nameParts.slice(1).join(' ') || '',
+            email: body.formData.email || 'no-email@provided.com',
+            phone: body.formData.phone,
+            address: body.formData.address,
+            city: 'Istanbul', // مقدار پیش‌فرض چون در فرم باکس نیست
+            country: 'Turkey',
+            zip: body.formData.zip
+        };
+        // تبدیل "orderDetails" به یک آیتم در لیست
+        finalItems = [{
+            name: body.orderDetails.boxName || 'Custom Box',
+            price: body.totalPrice,
+            quantity: 1,
+            details: body.orderDetails // ذخیره جزئیات کامل مثل پدها و ...
+        }];
+        finalTotal = body.totalPrice;
+    } 
+    else {
+        return NextResponse.json({ error: "Unknown data format" }, { status: 400 });
     }
-
-    const { items, total } = body;
 
     // 1. ذخیره در Supabase
     const { data: order, error: dbError } = await supabase
       .from('orders')
       .insert({
-        customer_name: `${customer.first_name} ${customer.last_name}`,
-        customer_email: customer.email,
-        customer_phone: customer.phone,
-        total_price: total.toString(),
-        items: items,
+        customer_name: `${finalCustomer.first_name} ${finalCustomer.last_name}`,
+        customer_email: finalCustomer.email,
+        customer_phone: finalCustomer.phone,
+        total_price: finalTotal.toString(),
+        items: finalItems,
         status: 'pending',
-        payment_id: null
+        payment_id: body.trackingCode || null // ذخیره کد رهگیری اگر باشد
       })
       .select()
       .single();
@@ -141,22 +123,22 @@ export async function POST(req: Request) {
     // 2. ارسال تلگرام (Safe Mode)
     if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
         try {
-            const message = `🛒 New Order: #${order.id}\n💰 Total: ${total} TL\n👤 ${customer.first_name}`;
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            const message = `🛒 New Order: #${order.id}\n💰 Total: ${finalTotal} TL\n👤 ${finalCustomer.first_name}\n📱 ${finalCustomer.phone}`;
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message }),
-            });
-        } catch (e) { console.error('Telegram failed', e); }
+            }).catch(e => console.error("Telegram Error", e));
+        } catch (e) {}
     }
 
-    // 3. تولید فرم
-    const formHtml = generateShopierForm(order, customer, total);
+    // 3. تولید فرم بانکی
+    const formHtml = generateShopierForm(order.id, finalCustomer, finalTotal);
 
     return NextResponse.json({ success: true, formHtml });
 
   } catch (error) {
-    console.error('Checkout Fatal Error:', error);
+    console.error('Fatal API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
