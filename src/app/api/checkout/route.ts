@@ -7,54 +7,51 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const SHOPIER_API_KEY = process.env.SHOPIER_API_KEY;
 const SHOPIER_API_SECRET = process.env.SHOPIER_API_SECRET;
 
-// تابع کمکی برای ساخت فرم شاپیر
+// تابع ساخت فرم
 function generateShopierForm(order: any, customer: any, total: any) {
-  // اطلاعات مورد نیاز شاپیر
+  // اگر مشتری ناقص باشد، مقادیر پیش‌فرض می‌گذارد تا فرم نسوزد
+  const firstName = customer?.first_name || 'Guest';
+  const lastName = customer?.last_name || '';
+  const email = customer?.email || 'no-email@test.com';
+  const phone = customer?.phone || '0000000000';
+  const address = customer?.address || 'No Address';
+  const city = customer?.city || 'Istanbul';
+  const country = customer?.country || 'Turkey';
+  const zip = customer?.zip || '00000';
+
   const args = {
     API_KEY: SHOPIER_API_KEY,
     website_index: 1,
     platform_order_id: order.id,
-    product_name: 'Vela Order', // نام کلی محصول
-    product_type: 1, // 1 برای کالای فیزیکی، 0 برای مجازی
-    buyer_name: customer.first_name,
-    buyer_surname: customer.last_name,
-    buyer_email: customer.email,
+    product_name: 'Vela Order',
+    product_type: 1,
+    buyer_name: firstName,
+    buyer_surname: lastName,
+    buyer_email: email,
     buyer_account_age: 0,
     buyer_id_nr: 0,
-    buyer_phone: customer.phone,
-    billing_address: customer.address,
-    billing_city: customer.city,
-    billing_country: customer.country,
-    billing_postcode: customer.zip || '00000',
-    shipping_address: customer.address,
-    shipping_city: customer.city,
-    shipping_country: customer.country,
-    shipping_postcode: customer.zip || '00000',
+    buyer_phone: phone,
+    billing_address: address,
+    billing_city: city,
+    billing_country: country,
+    billing_postcode: zip,
+    shipping_address: address,
+    shipping_city: city,
+    shipping_country: country,
+    shipping_postcode: zip,
     total_order_value: total,
-    currency: 0, // 0 = TRY, 1 = USD, 2 = EUR
+    currency: 0,
     platform: 0,
     is_in_frame: 0,
-    current_language: 0, // 0 = Turkish, 1 = English
+    current_language: 0,
     modul_version: '1.0.4',
     random_nr: Math.floor(Math.random() * 999999) + 100000,
   };
 
-  // تولید امضای امنیتی (Signature)
-  const data = [
-    args.API_KEY,
-    args.website_index,
-    args.platform_order_id,
-    args.total_order_value,
-    args.currency,
-    args.random_nr, // اینجا اصلاح شد که دقیق باشد
-  ];
-  
-  // ساخت رشته امضا طبق استاندارد شاپیر
-  // نکته: شاپیر فرمت خاصی برای امضا دارد. معمولاً ترکیب API_SECRET + data است
+  const data = [args.API_KEY, args.website_index, args.platform_order_id, args.total_order_value, args.currency, args.random_nr];
   const signatureString = data.join('') + SHOPIER_API_SECRET;
   const signature = crypto.createHash('sha256').update(signatureString).digest('base64');
 
-  // ساخت فرم HTML
   return `
     <!DOCTYPE html>
     <html>
@@ -95,7 +92,31 @@ function generateShopierForm(order: any, customer: any, total: any) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items, total, customer } = body;
+    console.log("📥 Incoming Request Body:", body); // <--- لاگ برای دیباگ
+
+    // تلاش برای پیدا کردن اطلاعات مشتری (چه فرمت جدید، چه قدیم)
+    let customer = body.customer;
+
+    // اگر فرمت قدیم بود (بدون customer)، دستی میسازیم
+    if (!customer) {
+        console.warn("⚠️ Old format detected or missing customer data");
+        if (body.firstName || body.first_name) {
+             customer = {
+                first_name: body.firstName || body.first_name || 'Unknown',
+                last_name: body.lastName || body.last_name || '',
+                email: body.email || '',
+                phone: body.phone || '',
+                address: body.address || '',
+                city: body.city || '',
+                country: body.country || ''
+             };
+        } else {
+            // اگر واقعا هیچ دیتایی نبود، ارور بده (کرش نکن)
+            return NextResponse.json({ error: "Missing customer data" }, { status: 400 });
+        }
+    }
+
+    const { items, total } = body;
 
     // 1. ذخیره در Supabase
     const { data: order, error: dbError } = await supabase
@@ -117,26 +138,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
     }
 
-    // 2. ارسال تلگرام (اختیاری - در صورت خطا ادامه میدهد)
-    try {
-        const message = `🛒 New Order: #${order.id}\n💰 Total: ${total} TL\n👤 ${customer.first_name} ${customer.last_name}`;
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message }),
-        });
-    } catch (e) { console.error('Telegram failed', e); }
+    // 2. ارسال تلگرام (Safe Mode)
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+        try {
+            const message = `🛒 New Order: #${order.id}\n💰 Total: ${total} TL\n👤 ${customer.first_name}`;
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: message }),
+            });
+        } catch (e) { console.error('Telegram failed', e); }
+    }
 
-    // 3. تولید فرم پرداخت
+    // 3. تولید فرم
     const formHtml = generateShopierForm(order, customer, total);
 
-    return NextResponse.json({ 
-      success: true, 
-      formHtml: formHtml // فرم HTML را برمی‌گردانیم
-    });
+    return NextResponse.json({ success: true, formHtml });
 
   } catch (error) {
-    console.error('Checkout Error:', error);
+    console.error('Checkout Fatal Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
