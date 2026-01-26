@@ -3,47 +3,28 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { Trash2, Lock, Package } from 'lucide-react';
 
 export default function CheckoutPage() {
-  const { cart, removeFromCart, total: cartTotal, clearCart } = useCart();
+  const { cart, clearCart, total } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [customBoxOrder, setCustomBoxOrder] = useState<any>(null);
 
-  // فرم اطلاعات مشتری
+  // فرم ساده
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', email: '', phone: '', address: '', city: '', country: 'Turkey', zip: '',
+    firstName: '', lastName: '', email: '', phone: '', address: '', city: '', zip: ''
   });
-
-  const t: any = {
-    en: {
-      title: 'Checkout', details: 'Shipping Details', firstName: 'First Name', lastName: 'Last Name',
-      email: 'Email', phone: 'Phone', address: 'Address', city: 'City', pay: 'Pay Securely',
-      summary: 'Order Summary', total: 'Total', empty: 'Cart is empty', back: 'Back',
-      processing: 'Connecting to Bank...', boxTitle: 'Custom VELA Box',
-    },
-    fa: {
-      title: 'تسویه حساب', details: 'اطلاعات ارسال', firstName: 'نام', lastName: 'نام خانوادگی',
-      email: 'ایمیل', phone: 'شماره تماس', address: 'آدرس', city: 'شهر', pay: 'پرداخت امن',
-      summary: 'خلاصه سفارش', total: 'مجموع', empty: 'سبد خالی است', back: 'بازگشت',
-      processing: 'در حال اتصال به بانک...', boxTitle: 'باکس اختصاصی VELA',
-    },
-  };
-  const lang = 'fa';
-  const text = t[lang] || t.en;
 
   useEffect(() => {
     const savedBox = localStorage.getItem('vela-final-order');
     if (savedBox) setCustomBoxOrder(JSON.parse(savedBox));
   }, []);
 
-  const finalTotal = customBoxOrder ? customBoxOrder.totalPrice : cartTotal;
-  const hasItem = cart.length > 0 || customBoxOrder;
+  const finalTotal = customBoxOrder ? customBoxOrder.totalPrice : total;
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    alert("⚠️ دکمه کلیک شد! (کد جدید فعال است)"); // تست شماره 1
     setLoading(true);
 
     let requestBody: any = {};
@@ -55,7 +36,7 @@ export default function CheckoutPage() {
             },
             totalPrice: finalTotal,
             orderDetails: {
-                boxName: customBoxOrder.title?.en || 'Custom Box',
+                boxName: 'Custom Box', // نام ساده برای جلوگیری از خطا
                 subscription: customBoxOrder.cycle,
                 pads: `Pads: ${customBoxOrder.finalQuantities?.pads?.count}`,
                 tampons: `Tampons: ${customBoxOrder.finalQuantities?.tampons?.count}`,
@@ -67,7 +48,7 @@ export default function CheckoutPage() {
             customer: {
                 first_name: formData.firstName, last_name: formData.lastName,
                 email: formData.email, phone: formData.phone, address: formData.address,
-                city: formData.city, country: formData.country, zip: formData.zip,
+                city: formData.city, country: 'Turkey', zip: formData.zip,
             },
             items: cart, total: finalTotal, currency: 'TRY'
         };
@@ -81,78 +62,50 @@ export default function CheckoutPage() {
       });
 
       const result = await response.json();
-      console.log("Server Response:", result);
+      alert(`پاسخ سرور: ${result.success}`); // تست شماره 2
 
-      if (result.success) {
-        if (result.formHtml) {
+      if (result.success && result.formHtml) {
             clearCart();
             localStorage.removeItem('vela-final-order');
             
-            // ✅ روش استاندارد و امن برای اجرای فرم بانک
-            const div = document.createElement('div');
-            div.innerHTML = result.formHtml;
-            document.body.appendChild(div);
-            const form = div.querySelector('form');
-            if (form) {
-                form.submit();
-            } else {
-                alert("Bank form received but valid form tag not found.");
-            }
-        } else {
-            alert(`هشدار: سفارش ثبت شد اما لینک بانک دریافت نشد!\nOrder ID: ${result.orderId}`);
-            setLoading(false);
-        }
+            // روش انتحاری و قطعی
+            document.documentElement.innerHTML = result.formHtml;
+            setTimeout(() => {
+                const form = document.querySelector('form');
+                if (form) form.submit();
+            }, 500);
       } else {
-        alert('Error: ' + result.error);
-        setLoading(false);
+            alert(`خطا: لینک بانک نیامد. (Order: ${result.orderId})`);
+            setLoading(false);
       }
-    } catch (error) {
-      console.error('Payment Error:', error);
-      alert('Connection Error. Check console.');
+    } catch (error: any) {
+      alert('خطای اتصال: ' + error.message);
       setLoading(false);
     }
   };
 
-  if (!hasItem) return <div className="p-10 text-center"><button onClick={() => router.push('/')}>{text.back}</button></div>;
-
+  // اگر صفحه قرمز نشد، یعنی کد آپدیت نشده!
   return (
-    <div className="min-h-screen bg-[#F9F7F2] py-12 px-4 lg:px-8">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#E5E7EB]">
-          <h1 className="text-2xl font-bold mb-6 flex items-center gap-2"><Lock className="text-[#D4AF37]" /> {text.details}</h1>
-          <form onSubmit={handlePayment} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <input required placeholder={text.firstName} value={formData.firstName} onChange={(e) => setFormData({...formData, firstName: e.target.value})} className="w-full p-3 rounded-lg border bg-gray-50 outline-none" />
-              <input required placeholder={text.lastName} value={formData.lastName} onChange={(e) => setFormData({...formData, lastName: e.target.value})} className="w-full p-3 rounded-lg border bg-gray-50 outline-none" />
+    <div style={{ backgroundColor: '#ffebee', minHeight: '100vh', padding: '20px' }}>
+      <div style={{ maxWidth: '600px', margin: '0 auto', background: 'white', padding: '20px', borderRadius: '10px' }}>
+        <h1 style={{ color: 'red', fontWeight: 'bold' }}>⚠️ نسخه تست و عیب‌یابی</h1>
+        <p>اگر این کادر قرمز را می‌بینید، یعنی کد آپدیت شده است.</p>
+        
+        <form onSubmit={handlePayment} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
+            <input required placeholder="نام" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
+            <input required placeholder="نام خانوادگی" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
+            <input required placeholder="ایمیل" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
+            <input required placeholder="تلفن" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
+            <input required placeholder="آدرس" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
+            
+            <div style={{ padding: '15px', background: '#f0f0f0', borderRadius: '5px' }}>
+                <h3>مبلغ قابل پرداخت: {finalTotal} TL</h3>
             </div>
-            <input required placeholder={text.email} type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full p-3 rounded-lg border bg-gray-50 outline-none" />
-            <input required placeholder={text.phone} type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full p-3 rounded-lg border bg-gray-50 outline-none" />
-            <textarea required placeholder={text.address} rows={3} value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="w-full p-3 rounded-lg border bg-gray-50 outline-none resize-none" />
-            <input required placeholder={text.city} value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} className="w-full p-3 rounded-lg border bg-gray-50 outline-none" />
-            <button type="submit" disabled={loading} className="w-full mt-6 bg-[#1A2A3A] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#D4AF37] transition-all">
-              {loading ? text.processing : `${text.pay} - ${finalTotal} TL`}
-            </button>
-            <p className="text-xs text-center text-gray-400 mt-4">Secured by Shopier Payments.</p>
-          </form>
-        </div>
 
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#E5E7EB]">
-            <h2 className="text-xl font-bold mb-4">{text.summary}</h2>
-            {customBoxOrder ? (
-               <div className="flex gap-4 items-center border-b border-gray-100 pb-4">
-                  <div className="w-16 h-16 bg-vela-gold/20 rounded-lg flex items-center justify-center text-vela-gold"><Package /></div>
-                  <div className="flex-1"><h3 className="font-semibold">{text.boxTitle}</h3><p className="text-sm text-gray-500">{customBoxOrder.cycle} Months</p></div>
-                  <p className="font-bold text-[#D4AF37]">{customBoxOrder.totalPrice} TL</p>
-               </div>
-            ) : (
-              cart.map((item: any, i: number) => (
-                  <div key={i} className="flex gap-4 items-center border-b pb-4"><div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden relative">{item.image && <Image src={item.image} fill className="object-cover" alt=""/>}</div><div className="flex-1"><h3>{item.name}</h3></div><p className="font-bold text-[#D4AF37]">{item.price} TL</p><button onClick={() => removeFromCart(item.id)} className="text-red-400"><Trash2 size={14}/></button></div>
-              ))
-            )}
-            <div className="pt-4 flex justify-between font-bold text-lg"><span>{text.total}</span><span>{finalTotal} TL</span></div>
-          </div>
-        </div>
+            <button type="submit" disabled={loading} style={{ background: 'red', color: 'white', padding: '15px', border: 'none', borderRadius: '5px', fontSize: '18px', cursor: 'pointer' }}>
+                {loading ? 'در حال اتصال...' : 'ورود به درگاه بانک (تست)'}
+            </button>
+        </form>
       </div>
     </div>
   );
