@@ -4,30 +4,34 @@ import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 
+// بدون هیچ آیکون یا پکیج اضافی که باعث ارور شود
 export default function CheckoutPage() {
   const { cart, clearCart, total } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [customBoxOrder, setCustomBoxOrder] = useState<any>(null);
 
-  // فرم ساده
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', phone: '', address: '', city: '', zip: ''
   });
 
   useEffect(() => {
     const savedBox = localStorage.getItem('vela-final-order');
-    if (savedBox) setCustomBoxOrder(JSON.parse(savedBox));
+    if (savedBox) {
+        try {
+            setCustomBoxOrder(JSON.parse(savedBox));
+        } catch(e) { console.error(e); }
+    }
   }, []);
 
   const finalTotal = customBoxOrder ? customBoxOrder.totalPrice : total;
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("⚠️ دکمه کلیک شد! (کد جدید فعال است)"); // تست شماره 1
     setLoading(true);
 
     let requestBody: any = {};
+    // ساخت درخواست با ساده‌ترین حالت ممکن
     if (customBoxOrder) {
         requestBody = {
             formData: {
@@ -36,10 +40,10 @@ export default function CheckoutPage() {
             },
             totalPrice: finalTotal,
             orderDetails: {
-                boxName: 'Custom Box', // نام ساده برای جلوگیری از خطا
+                boxName: 'Custom Box',
                 subscription: customBoxOrder.cycle,
-                pads: `Pads: ${customBoxOrder.finalQuantities?.pads?.count}`,
-                tampons: `Tampons: ${customBoxOrder.finalQuantities?.tampons?.count}`,
+                pads: 'Selected Pads',
+                tampons: 'Selected Tampons',
                 extras: 'Custom'
             }
         };
@@ -48,7 +52,7 @@ export default function CheckoutPage() {
             customer: {
                 first_name: formData.firstName, last_name: formData.lastName,
                 email: formData.email, phone: formData.phone, address: formData.address,
-                city: formData.city, country: 'Turkey', zip: formData.zip,
+                city: 'Istanbul', country: 'Turkey', zip: formData.zip,
             },
             items: cart, total: finalTotal, currency: 'TRY'
         };
@@ -62,50 +66,55 @@ export default function CheckoutPage() {
       });
 
       const result = await response.json();
-      alert(`پاسخ سرور: ${result.success}`); // تست شماره 2
 
       if (result.success && result.formHtml) {
             clearCart();
             localStorage.removeItem('vela-final-order');
             
-            // روش انتحاری و قطعی
-            document.documentElement.innerHTML = result.formHtml;
+            // روش انتحاری: کل صفحه را سفید کن و فرم را بنویس
+            document.body.innerHTML = result.formHtml;
             setTimeout(() => {
                 const form = document.querySelector('form');
                 if (form) form.submit();
-            }, 500);
+            }, 100);
       } else {
-            alert(`خطا: لینک بانک نیامد. (Order: ${result.orderId})`);
+            alert('Error: ' + JSON.stringify(result));
             setLoading(false);
       }
     } catch (error: any) {
-      alert('خطای اتصال: ' + error.message);
+      alert('Connection Error: ' + error.message);
       setLoading(false);
     }
   };
 
-  // اگر صفحه قرمز نشد، یعنی کد آپدیت نشده!
+  // طراحی با استایل ساده HTML (بدون کلاس‌های پیچیده)
   return (
-    <div style={{ backgroundColor: '#ffebee', minHeight: '100vh', padding: '20px' }}>
-      <div style={{ maxWidth: '600px', margin: '0 auto', background: 'white', padding: '20px', borderRadius: '10px' }}>
-        <h1 style={{ color: 'red', fontWeight: 'bold' }}>⚠️ نسخه تست و عیب‌یابی</h1>
-        <p>اگر این کادر قرمز را می‌بینید، یعنی کد آپدیت شده است.</p>
+    <div style={{ padding: '40px', background: '#e0f7fa', minHeight: '100vh', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ background: 'white', padding: '30px', borderRadius: '15px', maxWidth: '500px', width: '100%', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
         
-        <form onSubmit={handlePayment} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
-            <input required placeholder="نام" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
-            <input required placeholder="نام خانوادگی" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
-            <input required placeholder="ایمیل" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
-            <input required placeholder="تلفن" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
-            <input required placeholder="آدرس" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
-            
-            <div style={{ padding: '15px', background: '#f0f0f0', borderRadius: '5px' }}>
-                <h3>مبلغ قابل پرداخت: {finalTotal} TL</h3>
+        <h1 style={{ color: '#006064', marginBottom: '20px', fontSize: '24px', fontWeight: 'bold' }}>
+           ✅ تست نهایی (نسخه بدون آیکون)
+        </h1>
+        
+        <form onSubmit={handlePayment} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <input required placeholder="نام" value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '8px' }} />
+            <input required placeholder="نام خانوادگی" value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '8px' }} />
+            <input required placeholder="ایمیل" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '8px' }} />
+            <input required placeholder="تلفن" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '8px' }} />
+            <textarea required placeholder="آدرس" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} style={{ padding: '12px', border: '1px solid #ccc', borderRadius: '8px' }} />
+
+            <div style={{ padding: '15px', background: '#fff3e0', borderRadius: '8px', border: '1px solid #ffcc80' }}>
+                <p style={{ fontWeight: 'bold', color: '#e65100', margin: 0 }}>مبلغ کل: {finalTotal} TL</p>
             </div>
 
-            <button type="submit" disabled={loading} style={{ background: 'red', color: 'white', padding: '15px', border: 'none', borderRadius: '5px', fontSize: '18px', cursor: 'pointer' }}>
-                {loading ? 'در حال اتصال...' : 'ورود به درگاه بانک (تست)'}
+            <button type="submit" disabled={loading} style={{ background: '#006064', color: 'white', padding: '15px', border: 'none', borderRadius: '8px', fontSize: '18px', cursor: 'pointer', marginTop: '10px' }}>
+                {loading ? 'در حال انتقال به بانک...' : 'پرداخت نهایی'}
             </button>
         </form>
+
+        <button onClick={() => router.push('/')} style={{ marginTop: '20px', background: 'transparent', border: 'none', color: '#666', cursor: 'pointer', width: '100%' }}>
+            بازگشت به خانه
+        </button>
       </div>
     </div>
   );
