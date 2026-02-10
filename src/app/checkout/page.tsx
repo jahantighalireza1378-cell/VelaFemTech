@@ -4,93 +4,47 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Info, ArrowRight, ArrowLeft, ShieldCheck, Lock, Loader2 } from 'lucide-react';
 
-// --- اطلاعات پایه باکس‌ها ---
-const BOX_DATA: any = {
-  essential: { basePrice: 380 },
-  care: { basePrice: 680 },
-  bliss: { basePrice: 1350 },
+const content: any = {
+    EN: {
+      title: "Shipping Details", name: "Full Name", phone: "Phone Number", addr: "Full Address",
+      summaryTitle: "Payment Summary", productsTotal: "Total Amount", serviceFee: "Service & Handling Fee",
+      totalToPay: "Total to Pay", payBtn: "Pay Securely", secureMsg: "Secured by Shopier Payment Gateway",
+      connecting: "Connecting to Secure Gateway", waitMsg: "Please wait while we transfer you to Shopier...", ssl: "256-bit SSL Encrypted Connection"
+    },
+    FA: {
+      title: "اطلاعات ارسال", name: "نام و نام خانوادگی", phone: "شماره تماس", addr: "آدرس دقیق پستی",
+      summaryTitle: "خلاصه پرداخت", productsTotal: "مبلغ سفارش", serviceFee: "هزینه خدمات و بسته‌بندی",
+      totalToPay: "مبلغ قابل پرداخت", payBtn: "پرداخت امن", secureMsg: "پرداخت امن توسط درگاه Shopier",
+      connecting: "در حال انتقال به درگاه امن", waitMsg: "لطفاً صبر کنید، در حال انتقال به صفحه پرداخت شاپرک (Shopier) هستیم...", ssl: "ارتباط امن با رمزنگاری ۲۵۶ بیتی"
+    },
+    TR: {
+      title: "Teslimat Bilgileri", name: "Ad Soyad", phone: "Telefon Numarası", addr: "Açık Adres",
+      summaryTitle: "Ödeme Özeti", productsTotal: "Sipariş Tutarı", serviceFee: "Hizmet ve Paketleme Bedeli",
+      totalToPay: "Ödenecek Tutar", payBtn: "Güvenli Ödeme", secureMsg: "Shopier ile Güvenli Ödeme",
+      connecting: "Güvenli Ödeme Sayfasına Bağlanılıyor", waitMsg: "Lütfen bekleyin, ödemenizi tamamlamak için Shopier'e yönlendiriliyorsunuz.", ssl: "256-bit SSL Şifreli Bağlantı"
+    },
+    RU: {
+      title: "Детали доставки", name: "ФИО", phone: "Номер телефона", addr: "Полный адрес",
+      summaryTitle: "Итог оплаты", productsTotal: "Сумма заказа", serviceFee: "Сервисный сбор",
+      totalToPay: "К оплате", payBtn: "Оплатить", secureMsg: "Защищено платежным шлюзом Shopier",
+      connecting: "Подключение к шлюзу", waitMsg: "Пожалуйста, подождите, мы перенаправляем вас на Shopier...", ssl: "256-битное SSL-шифрование"
+    }
 };
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
-  const [lang, setLang] = useState('EN'); // پیش‌فرض انگلیسی
+  const [lang, setLang] = useState('EN');
   
-  const [formData, setFormData] = useState({ 
-    name: '', phone: '', address: '', zip: '' 
-  });
+  const [formData, setFormData] = useState({ name: '', phone: '', address: '', zip: '' });
 
-  // --- دیکشنری زبان‌ها (دقیقاً هماهنگ با BoxBuilder) ---
-  const content: any = {
-    EN: {
-      title: "Shipping Details",
-      name: "Full Name",
-      phone: "Phone Number",
-      addr: "Full Address",
-      summaryTitle: "Payment Summary",
-      productsTotal: "Products Total",
-      serviceFee: "Service & Handling Fee",
-      totalToPay: "Total to Pay",
-      payBtn: "Pay Securely",
-      secureMsg: "Secured by Shopier Payment Gateway",
-      // Overlay Messages
-      connecting: "Connecting to Secure Gateway",
-      waitMsg: "Please wait while we transfer you to Shopier to complete your secure payment.",
-      ssl: "256-bit SSL Encrypted Connection"
-    },
-    FA: {
-      title: "اطلاعات ارسال",
-      name: "نام و نام خانوادگی",
-      phone: "شماره تماس",
-      addr: "آدرس دقیق پستی",
-      summaryTitle: "خلاصه پرداخت",
-      productsTotal: "جمع کل محصولات",
-      serviceFee: "هزینه خدمات و بسته‌بندی",
-      totalToPay: "مبلغ قابل پرداخت",
-      payBtn: "پرداخت امن",
-      secureMsg: "پرداخت امن توسط درگاه Shopier",
-      // Overlay Messages
-      connecting: "در حال انتقال به درگاه امن",
-      waitMsg: "لطفاً صبر کنید، در حال انتقال به صفحه پرداخت شاپرک (Shopier) هستیم...",
-      ssl: "ارتباط امن با رمزنگاری ۲۵۶ بیتی"
-    },
-    TR: {
-      title: "Teslimat Bilgileri",
-      name: "Ad Soyad",
-      phone: "Telefon Numarası",
-      addr: "Açık Adres",
-      summaryTitle: "Ödeme Özeti",
-      productsTotal: "Ürün Toplamı",
-      serviceFee: "Hizmet ve Paketleme Bedeli",
-      totalToPay: "Ödenecek Tutar",
-      payBtn: "Güvenli Ödeme",
-      secureMsg: "Shopier ile Güvenli Ödeme",
-      // Overlay Messages
-      connecting: "Güvenli Ödeme Sayfasına Bağlanılıyor",
-      waitMsg: "Lütfen bekleyin, ödemenizi tamamlamak için Shopier'e yönlendiriliyorsunuz.",
-      ssl: "256-bit SSL Şifreli Bağlantı"
-    },
-    RU: {
-      title: "Детали доставки",
-      name: "ФИО",
-      phone: "Номер телефона",
-      addr: "Полный адрес",
-      summaryTitle: "Итог оплаты",
-      productsTotal: "Сумма товаров",
-      serviceFee: "Сервисный сбор",
-      totalToPay: "К оплате",
-      payBtn: "Оплатить",
-      secureMsg: "Защищено платежным шлюзом Shopier",
-      // Overlay Messages
-      connecting: "Подключение к шлюзу",
-      waitMsg: "Пожалуйста, подождите, мы перенаправляем вас на Shopier...",
-      ssl: "256-битное SSL-шифрование"
-    }
-  };
-
-  // 🔴 لیست لینک‌های شاپیر 🔴
+  // 🔴 لیست کامل و دقیق لینک‌های شاپیر 🔴
   const PAYMENT_LINKS: { [key: number]: string } = {
+    120: 'https://shopier.com/VelaFemTech/44152946',
+    180: 'https://shopier.com/VelaFemTech/44152981',
+    220: 'https://shopier.com/VelaFemTech/44153006',
+    300: 'https://shopier.com/VelaFemTech/44152849',
     400: 'https://shopier.com/VelaFemTech/44133990',
     450: 'https://shopier.com/VelaFemTech/44134077',
     500: 'https://shopier.com/VelaFemTech/44134127',
@@ -128,50 +82,45 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    // ۱. خواندن زبان انتخاب شده
     const savedLang = localStorage.getItem('vela-lang');
     if (savedLang) setLang(savedLang);
 
-    // ۲. خواندن اطلاعات سفارش
     const savedOrder = localStorage.getItem('vela-temp-order');
     if (savedOrder) {
         try { 
             const parsed = JSON.parse(savedOrder);
             setOrderData(parsed);
-            if(parsed.formData) setFormData(parsed.formData);
+            if(parsed.formData) {
+                setFormData(prev => ({
+                    ...prev,
+                    name: parsed.formData.name || '',
+                    phone: parsed.formData.phone || '',
+                    address: parsed.formData.address || ''
+                }));
+            }
         } catch(e) {}
     } else {
         router.push('/');
     }
   }, [router]);
 
-  // انتخاب متن بر اساس زبان
   const t = content[lang] || content['EN'];
-  const isRTL = lang === 'FA'; // تشخیص زبان فارسی برای راست‌چین کردن
+  const isRTL = lang === 'FA';
 
-  const calculateExactTotal = () => {
-    if (!orderData) return 0;
-    const { selectedBoxId, hasTampon, tamponCount, extras, subscription } = orderData;
-    const box = BOX_DATA[selectedBoxId] || BOX_DATA['essential'];
-    let total = box.basePrice;
-    if (hasTampon) total += (tamponCount * 5);
-    if (extras) {
-        total += (extras.chocolate || 0) * 80;
-        total += (extras.tea || 0) * 60;
-        total += (extras.heatPatch || 0) * 40;
-        total += (extras.hotWaterBottle || 0) * 150;
-    }
-    total = total * subscription;
-    if (subscription === 3) total = total * 0.95;
-    if (subscription === 6) total = total * 0.90;
-    return Math.round(total);
-  };
+  const exactTotal = orderData?.totalPrice || 0;
 
-  const exactTotal = calculateExactTotal();
-
+  // 🧠 لاجیک هوشمند پیدا کردن لینک
   const getPayableAmount = (price: number) => {
+    if (!price || price <= 0) return 0;
     const availablePrices = Object.keys(PAYMENT_LINKS).map(Number).sort((a, b) => a - b);
+    
+    // ۱. اگر دقیق بود
+    if (availablePrices.includes(price)) return price;
+
+    // ۲. اگر دقیق نبود، اولین قیمت بالاتر
     const foundPrice = availablePrices.find(p => p >= price);
+    
+    // ۳. اگر پیدا نشد، آخرین لینک
     return foundPrice || availablePrices[availablePrices.length - 1];
   };
 
@@ -183,7 +132,7 @@ export default function CheckoutPage() {
 
     const link = PAYMENT_LINKS[finalPayable];
     if (!link) {
-        alert('Payment link error. Contact support.');
+        alert('Link Error. Contact Support.');
         setLoading(false);
         return;
     }
@@ -204,7 +153,7 @@ export default function CheckoutPage() {
         
         setTimeout(() => {
             window.location.href = link;
-        }, 2500); // کمی تاخیر بیشتر برای خواندن پیام
+        }, 1500);
 
     } catch (e) {
         alert('Server Error.');
@@ -217,7 +166,6 @@ export default function CheckoutPage() {
   return (
     <div className="min-h-screen bg-[#F9F7F2] py-12 px-4 flex justify-center items-start pt-24 relative" dir={isRTL ? 'rtl' : 'ltr'}>
       
-      {/* ✨ OVERLAY تمام صفحه چند زبانه ✨ */}
       {loading && (
           <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center p-8">
               <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 animate-pulse border-4 border-green-100 shadow-xl">
@@ -227,7 +175,6 @@ export default function CheckoutPage() {
               <p className="text-gray-500 mb-8 max-w-md text-lg leading-relaxed">
                   {t.waitMsg} <b>Shopier</b>
               </p>
-              
               <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
                   <Lock size={14} /> {t.ssl}
               </div>
@@ -246,8 +193,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="group">
                     <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">{t.phone}</label>
-                    <input value={formData.phone} onChange={e=>setFormData({...formData, phone: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50/50 focus:border-[#D4AF37] focus:bg-white focus:shadow-md outline-none transition-all" dir="ltr"/> 
-                    {/* شماره تماس همیشه LTR باشد بهتر است */}
+                    <input value={formData.phone} type="tel" onChange={e=>setFormData({...formData, phone: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50/50 focus:border-[#D4AF37] focus:bg-white focus:shadow-md outline-none transition-all" dir="ltr"/> 
                 </div>
                 <div className="group">
                     <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">{t.addr}</label>
