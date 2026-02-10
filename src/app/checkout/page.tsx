@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Info, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Check, Info, ArrowRight, ArrowLeft, ShieldCheck, Lock, Loader2 } from 'lucide-react';
 
-// --- اطلاعات پایه باکس‌ها (برای محاسبه قیمت دقیق) ---
+// --- اطلاعات پایه باکس‌ها ---
 const BOX_DATA: any = {
   essential: { basePrice: 380 },
   care: { basePrice: 680 },
@@ -15,13 +15,81 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
+  const [lang, setLang] = useState('EN'); // پیش‌فرض انگلیسی
   
-  // فرم آدرس (اگر از قبل پر نشده باشد)
   const [formData, setFormData] = useState({ 
     name: '', phone: '', address: '', zip: '' 
   });
 
-  // 🔴 لیست کامل لینک‌های شاپیر شما 🔴
+  // --- دیکشنری زبان‌ها (دقیقاً هماهنگ با BoxBuilder) ---
+  const content: any = {
+    EN: {
+      title: "Shipping Details",
+      name: "Full Name",
+      phone: "Phone Number",
+      addr: "Full Address",
+      summaryTitle: "Payment Summary",
+      productsTotal: "Products Total",
+      serviceFee: "Service & Handling Fee",
+      totalToPay: "Total to Pay",
+      payBtn: "Pay Securely",
+      secureMsg: "Secured by Shopier Payment Gateway",
+      // Overlay Messages
+      connecting: "Connecting to Secure Gateway",
+      waitMsg: "Please wait while we transfer you to Shopier to complete your secure payment.",
+      ssl: "256-bit SSL Encrypted Connection"
+    },
+    FA: {
+      title: "اطلاعات ارسال",
+      name: "نام و نام خانوادگی",
+      phone: "شماره تماس",
+      addr: "آدرس دقیق پستی",
+      summaryTitle: "خلاصه پرداخت",
+      productsTotal: "جمع کل محصولات",
+      serviceFee: "هزینه خدمات و بسته‌بندی",
+      totalToPay: "مبلغ قابل پرداخت",
+      payBtn: "پرداخت امن",
+      secureMsg: "پرداخت امن توسط درگاه Shopier",
+      // Overlay Messages
+      connecting: "در حال انتقال به درگاه امن",
+      waitMsg: "لطفاً صبر کنید، در حال انتقال به صفحه پرداخت شاپرک (Shopier) هستیم...",
+      ssl: "ارتباط امن با رمزنگاری ۲۵۶ بیتی"
+    },
+    TR: {
+      title: "Teslimat Bilgileri",
+      name: "Ad Soyad",
+      phone: "Telefon Numarası",
+      addr: "Açık Adres",
+      summaryTitle: "Ödeme Özeti",
+      productsTotal: "Ürün Toplamı",
+      serviceFee: "Hizmet ve Paketleme Bedeli",
+      totalToPay: "Ödenecek Tutar",
+      payBtn: "Güvenli Ödeme",
+      secureMsg: "Shopier ile Güvenli Ödeme",
+      // Overlay Messages
+      connecting: "Güvenli Ödeme Sayfasına Bağlanılıyor",
+      waitMsg: "Lütfen bekleyin, ödemenizi tamamlamak için Shopier'e yönlendiriliyorsunuz.",
+      ssl: "256-bit SSL Şifreli Bağlantı"
+    },
+    RU: {
+      title: "Детали доставки",
+      name: "ФИО",
+      phone: "Номер телефона",
+      addr: "Полный адрес",
+      summaryTitle: "Итог оплаты",
+      productsTotal: "Сумма товаров",
+      serviceFee: "Сервисный сбор",
+      totalToPay: "К оплате",
+      payBtn: "Оплатить",
+      secureMsg: "Защищено платежным шлюзом Shopier",
+      // Overlay Messages
+      connecting: "Подключение к шлюзу",
+      waitMsg: "Пожалуйста, подождите, мы перенаправляем вас на Shopier...",
+      ssl: "256-битное SSL-шифрование"
+    }
+  };
+
+  // 🔴 لیست لینک‌های شاپیر 🔴
   const PAYMENT_LINKS: { [key: number]: string } = {
     400: 'https://shopier.com/VelaFemTech/44133990',
     450: 'https://shopier.com/VelaFemTech/44134077',
@@ -60,175 +128,167 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    // خواندن اطلاعات ذخیره شده از مرحله قبل (BoxBuilder)
-    const saved = localStorage.getItem('vela-temp-order');
-    if (saved) {
+    // ۱. خواندن زبان انتخاب شده
+    const savedLang = localStorage.getItem('vela-lang');
+    if (savedLang) setLang(savedLang);
+
+    // ۲. خواندن اطلاعات سفارش
+    const savedOrder = localStorage.getItem('vela-temp-order');
+    if (savedOrder) {
         try { 
-            const parsed = JSON.parse(saved);
+            const parsed = JSON.parse(savedOrder);
             setOrderData(parsed);
-            // اگر کاربر قبلا فرم را پر کرده بود، اینجا بنشیند
             if(parsed.formData) setFormData(parsed.formData);
-        } catch(e) {
-            console.error("Error parsing order", e);
-        }
+        } catch(e) {}
     } else {
-        // اگر دیتایی نبود برگردد به صفحه اصلی
         router.push('/');
     }
   }, [router]);
 
-  // --- ۱. محاسبه دقیق قیمت (دقیقا مشابه BoxBuilder) ---
+  // انتخاب متن بر اساس زبان
+  const t = content[lang] || content['EN'];
+  const isRTL = lang === 'FA'; // تشخیص زبان فارسی برای راست‌چین کردن
+
   const calculateExactTotal = () => {
     if (!orderData) return 0;
-
     const { selectedBoxId, hasTampon, tamponCount, extras, subscription } = orderData;
-    // اگر باکس پیدا نشد، پیش‌فرض essential
     const box = BOX_DATA[selectedBoxId] || BOX_DATA['essential'];
-
     let total = box.basePrice;
-
-    // اضافه کردن قیمت تامپون
     if (hasTampon) total += (tamponCount * 5);
-
-    // اضافه کردن قیمت اکستراها
     if (extras) {
         total += (extras.chocolate || 0) * 80;
         total += (extras.tea || 0) * 60;
         total += (extras.heatPatch || 0) * 40;
         total += (extras.hotWaterBottle || 0) * 150;
     }
-
-    // اعمال ضریب اشتراک (۳ ماهه ۵٪ ، ۶ ماهه ۱۰٪)
     total = total * subscription;
     if (subscription === 3) total = total * 0.95;
     if (subscription === 6) total = total * 0.90;
-
     return Math.round(total);
   };
 
   const exactTotal = calculateExactTotal();
 
-  // --- ۲. الگوریتم هوشمند: پیدا کردن نزدیک‌ترین لینک بالاتر ---
   const getPayableAmount = (price: number) => {
-    // تبدیل کلیدهای آبجکت لینک‌ها به آرایه اعداد و مرتب‌سازی
-    const availablePrices = Object.keys(PAYMENT_LINKS)
-                            .map(Number)
-                            .sort((a, b) => a - b);
-
-    // پیدا کردن اولین قیمتی که بزرگتر یا مساوی قیمت مشتری باشد
+    const availablePrices = Object.keys(PAYMENT_LINKS).map(Number).sort((a, b) => a - b);
     const foundPrice = availablePrices.find(p => p >= price);
-
-    // اگر پیدا شد برگردان، اگر نه (یعنی قیمت خیلی بالاتر است) آخرین لینک (۸۰۰۰) را برگردان
     return foundPrice || availablePrices[availablePrices.length - 1];
   };
 
   const finalPayable = getPayableAmount(exactTotal);
   const serviceFee = finalPayable - exactTotal;
 
-  // --- ۳. انجام پرداخت و ذخیره در دیتابیس ---
   const handleFinalPayment = async () => {
     setLoading(true);
 
-    // پیدا کردن لینک نهایی
     const link = PAYMENT_LINKS[finalPayable];
-
     if (!link) {
-        alert('Payment link not found. Please contact support.');
+        alert('Payment link error. Contact support.');
         setLoading(false);
         return;
     }
 
-    // ذخیره نهایی در دیتابیس (Supabase)
     try {
         await fetch('/api/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 ...orderData,
-                formData, // اطلاعات نهایی آدرس
-                paidAmount: finalPayable, // مبلغی که پرداخت کرده
-                realPrice: exactTotal, // مبلغ واقعی محصولات
+                formData, 
+                paidAmount: finalPayable,
+                realPrice: exactTotal,
                 status: 'pending_payment'
             }),
         });
-        
-        // پاک کردن حافظه موقت
         localStorage.removeItem('vela-temp-order');
-
-        // هدایت به شاپیر
-        window.location.href = link;
+        
+        setTimeout(() => {
+            window.location.href = link;
+        }, 2500); // کمی تاخیر بیشتر برای خواندن پیام
 
     } catch (e) {
-        alert('Connection Error. Please try again.');
+        alert('Server Error.');
         setLoading(false);
     }
   };
 
-  if (!orderData) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+  if (!orderData) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-[#D4AF37]"/></div>;
 
   return (
-    <div className="min-h-screen bg-[#F9F7F2] py-12 px-4 flex justify-center items-start pt-24">
-      <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="min-h-screen bg-[#F9F7F2] py-12 px-4 flex justify-center items-start pt-24 relative" dir={isRTL ? 'rtl' : 'ltr'}>
+      
+      {/* ✨ OVERLAY تمام صفحه چند زبانه ✨ */}
+      {loading && (
+          <div className="fixed inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in text-center p-8">
+              <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mb-6 animate-pulse border-4 border-green-100 shadow-xl">
+                  <ShieldCheck size={48} className="text-green-600" />
+              </div>
+              <h2 className="text-2xl font-serif font-bold text-[#1A2A3A] mb-3">{t.connecting}</h2>
+              <p className="text-gray-500 mb-8 max-w-md text-lg leading-relaxed">
+                  {t.waitMsg} <b>Shopier</b>
+              </p>
+              
+              <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
+                  <Lock size={14} /> {t.ssl}
+              </div>
+          </div>
+      )}
+
+      <div className={`max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 transition-all duration-500 ${loading ? 'blur-md opacity-40 scale-95' : ''}`}>
         
-        {/* فرم آدرس (قابلیت ویرایش نهایی) */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 animate-fade-in">
-            <h2 className="text-xl font-serif font-bold text-[#1A2A3A] mb-6">Shipping Details</h2>
-            <div className="space-y-4">
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-gray-400 uppercase">Full Name</label>
-                    <input value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-[#D4AF37] outline-none"/>
+        {/* فرم آدرس */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
+            <h2 className="text-2xl font-serif font-bold text-[#1A2A3A] mb-8">{t.title}</h2>
+            <div className="space-y-6">
+                <div className="group">
+                    <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">{t.name}</label>
+                    <input value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50/50 focus:border-[#D4AF37] focus:bg-white focus:shadow-md outline-none transition-all"/>
                 </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-gray-400 uppercase">Phone</label>
-                    <input value={formData.phone} onChange={e=>setFormData({...formData, phone: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 focus:border-[#D4AF37] outline-none"/>
+                <div className="group">
+                    <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">{t.phone}</label>
+                    <input value={formData.phone} onChange={e=>setFormData({...formData, phone: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50/50 focus:border-[#D4AF37] focus:bg-white focus:shadow-md outline-none transition-all" dir="ltr"/> 
+                    {/* شماره تماس همیشه LTR باشد بهتر است */}
                 </div>
-                <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-gray-400 uppercase">Address</label>
-                    <textarea rows={3} value={formData.address} onChange={e=>setFormData({...formData, address: e.target.value})} className="w-full p-3 border rounded-xl bg-gray-50 resize-none focus:border-[#D4AF37] outline-none"/>
+                <div className="group">
+                    <label className="text-xs font-bold text-gray-400 uppercase mb-2 block tracking-wider">{t.addr}</label>
+                    <textarea rows={3} value={formData.address} onChange={e=>setFormData({...formData, address: e.target.value})} className="w-full p-4 border border-gray-200 rounded-xl bg-gray-50/50 resize-none focus:border-[#D4AF37] focus:bg-white focus:shadow-md outline-none transition-all"/>
                 </div>
             </div>
         </div>
 
-        {/* کارت خلاصه پرداخت */}
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-2 border-[#D4AF37]/20 h-fit animate-fade-in-up">
-            <h2 className="text-xl font-serif font-bold text-[#1A2A3A] mb-6 flex items-center gap-2">
-                Payment Summary <Check className="text-green-500" size={20}/>
+        {/* خلاصه پرداخت */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-xl border-2 border-[#D4AF37]/10 h-fit">
+            <h2 className="text-2xl font-serif font-bold text-[#1A2A3A] mb-8 flex items-center gap-3">
+                {t.summaryTitle} <div className="bg-green-100 text-green-600 p-1 rounded-full"><Check size={16}/></div>
             </h2>
 
-            <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-gray-600">
-                    <span>Products Total</span>
-                    <span className="font-mono font-bold">{exactTotal} TL</span>
+            <div className="space-y-4 mb-8">
+                <div className="flex justify-between text-gray-600 font-medium">
+                    <span>{t.productsTotal}</span>
+                    <span className="font-mono text-[#1A2A3A]">{exactTotal} TL</span>
                 </div>
                 
-                {/* نمایش شفاف هزینه سرویس (فقط اگر اختلاف وجود داشته باشد) */}
                 {serviceFee > 0 && (
-                    <div className="flex justify-between text-green-700 text-sm bg-green-50 p-3 rounded-lg border border-green-100">
-                        <span className="flex items-center gap-1"><Info size={14}/> Service & Handling Fee</span>
-                        <span className="font-mono">+ {serviceFee} TL</span>
+                    <div className="flex justify-between text-green-700 text-sm bg-green-50/80 p-4 rounded-xl border border-green-100">
+                        <span className="flex items-center gap-2"><Info size={16}/> {t.serviceFee}</span>
+                        <span className="font-mono font-bold">+ {serviceFee} TL</span>
                     </div>
                 )}
 
-                <div className="border-t border-gray-200 pt-4 mt-2 flex justify-between items-center">
-                    <span className="font-bold text-lg text-[#1A2A3A]">Total to Pay</span>
-                    <span className="font-bold text-3xl text-[#1A2A3A]">{finalPayable} <span className="text-sm text-gray-400">TL</span></span>
+                <div className="border-t-2 border-dashed border-gray-200 pt-6 mt-4 flex justify-between items-center">
+                    <span className="font-bold text-lg text-[#1A2A3A]">{t.totalToPay}</span>
+                    <span className="font-bold text-4xl text-[#1A2A3A]">{finalPayable} <span className="text-sm text-gray-400 font-medium">TL</span></span>
                 </div>
             </div>
 
             <button 
                 onClick={handleFinalPayment} 
-                disabled={loading}
-                className="w-full bg-[#1A2A3A] text-white py-4 rounded-xl font-bold text-lg hover:bg-[#D4AF37] transition-all shadow-lg flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="w-full bg-[#1A2A3A] text-white py-5 rounded-2xl font-bold text-lg hover:bg-[#D4AF37] hover:shadow-xl hover:-translate-y-1 transition-all flex justify-center items-center gap-3 active:scale-95"
             >
-                {loading ? <Loader2 className="animate-spin"/> : <>Pay Securely <ArrowRight size={20}/></>}
+                {t.payBtn} {isRTL ? <ArrowLeft size={22}/> : <ArrowRight size={22}/>}
             </button>
-            
-            <div className="mt-4 flex justify-center gap-4 opacity-50">
-               {/* می‌توانید لوگوی ویزا/مسترکارت بگذارید */}
-               <span className="text-[10px] text-gray-400">Secured by Shopier Payment Gateway</span>
-            </div>
+            <p className="text-center text-gray-300 text-[10px] uppercase tracking-widest mt-6 font-bold">{t.secureMsg}</p>
         </div>
-
       </div>
     </div>
   );
