@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import { useSearchParams } from 'next/navigation'; 
 import Link from 'next/link';
 import { 
   ArrowLeft, ArrowRight, Check, Calendar as CalendarIcon, Package, Sliders, 
@@ -51,7 +50,7 @@ const jalaali = {
   monthNames: ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
 };
 
-// --- Box Configuration Data (قیمت‌ها و مشخصات) ---
+// --- Box Configuration Data ---
 const BOX_DATA: any = {
   essential: { id: 'essential', name: 'Essential', basePrice: 380, points: 30 },
   care: { id: 'care', name: 'Care', basePrice: 680, points: 50 },
@@ -62,11 +61,9 @@ function BoxBuilderContent() {
   const [step, setStep] = useState(1);
   const [lang, setLang] = useState('EN');
   
-  // دریافت پارامتر type از آدرس (مثلاً ?type=essential)
   const searchParams = useSearchParams();
   const typeParam = searchParams.get('type');
   
-  // انتخاب باکس بر اساس لینک (اگر چیزی نبود، پیش‌فرض care می‌شود)
   const selectedBoxType = BOX_DATA[typeParam || 'care'] || BOX_DATA['care'];
 
   // Data States
@@ -85,14 +82,12 @@ function BoxBuilderContent() {
   
   const [extras, setExtras] = useState({ chocolate: 0, tea: 0, heatPatch: 0, hotWaterBottle: 0 });
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', zip: '' });
-  const [trackingCode, setTrackingCode] = useState('');
 
   const content: any = {
     EN: {
-      next: "Next Step", back: "Back", confirm: "Confirm & Pay", currency: "TL",
+      next: "Next Step", back: "Back", confirm: "Proceed to Checkout", currency: "TL",
       step1Title: "Cycle Tracking", step1Desc: "Select your last period start date.",
       calcNext: "Next Period:", calcShip: "Shipping Date:",
-      // استفاده از نام باکس انتخاب شده در تیتر
       step2Title: `Customize ${selectedBoxType.name} Box`, 
       subTitle: "Subscription Plan", discount: "OFF",
       ecoTitle: "Eco-Friendly", ecoDesc: `Get +${selectedBoxType.points} Wallet Points!`,
@@ -105,7 +100,7 @@ function BoxBuilderContent() {
       successTitle: "Success!", successDesc: "Your order is confirmed.", trackLabel: "Tracking ID", homeBtn: "Home"
     },
     FA: {
-      next: "مرحله بعد", back: "بازگشت", confirm: "پرداخت نهایی", currency: "لیر",
+      next: "مرحله بعد", back: "بازگشت", confirm: "تایید و پرداخت", currency: "لیر",
       step1Title: "تقویم قاعدگی", step1Desc: "تاریخ شروع آخرین پریود خود را انتخاب کنید.",
       calcNext: "پریود بعدی:", calcShip: "زمان ارسال (۵ روز قبل):",
       step2Title: `شخصی‌سازی باکس ${selectedBoxType.name}`, 
@@ -120,7 +115,7 @@ function BoxBuilderContent() {
       successTitle: "سفارش ثبت شد", successDesc: "بسته شما به زودی ارسال می‌شود.", trackLabel: "کد رهگیری", homeBtn: "بازگشت به خانه"
     },
     TR: {
-       next: "İleri", back: "Geri", confirm: "Öde", currency: "TL",
+       next: "İleri", back: "Geri", confirm: "Ödeme Yap", currency: "TL",
        step1Title: "Döngü Takibi", step1Desc: "Son adet tarihini seçin.",
        calcNext: "Sonraki Adet:", calcShip: "Kargo Tarihi:",
        step2Title: `${selectedBoxType.name} Özelleştir`, subTitle: "Abonelik", discount: "İndirim",
@@ -159,9 +154,8 @@ function BoxBuilderContent() {
   const t = content[lang] || content['EN'];
   const isRTL = lang === 'FA';
 
-  // --- Logic (محاسبه قیمت با توجه به باکس انتخاب شده) ---
   const calculateTotal = () => {
-      let total = selectedBoxType.basePrice; // اینجا قیمت پایه (۳۸۰، ۶۸۰ یا ۱۳۵۰) قرار می‌گیرد
+      let total = selectedBoxType.basePrice; 
       if (hasTampon) total += (tamponCount * 5);
       total += (extras.chocolate * 80) + (extras.tea * 60) + (extras.heatPatch * 40) + (extras.hotWaterBottle * 150);
       
@@ -192,55 +186,26 @@ function BoxBuilderContent() {
       };
   };
 
-  // --- Checkout Logic (اتصال به تلگرام) ---
-  const handlePayment = async () => {
-      if (!formData.name || !formData.phone || !formData.address) {
-          alert(lang === 'FA' ? "لطفاً تمام فیلدها را پر کنید." : "Please fill in all fields.");
-          return;
-      }
-
-      const randomCode = "VELA-" + Math.floor(100000 + Math.random() * 900000);
-      setTrackingCode(randomCode);
-
-      let extrasList = [];
-      if (extras.chocolate > 0) extrasList.push(`شکلات (${extras.chocolate})`);
-      if (extras.tea > 0) extrasList.push(`دمنوش (${extras.tea})`);
-      if (extras.heatPatch > 0) extrasList.push(`پچ حرارتی (${extras.heatPatch})`);
-      if (extras.hotWaterBottle > 0) extrasList.push(`کیسه آب گرم (${extras.hotWaterBottle})`);
-      const extrasText = extrasList.length > 0 ? extrasList.join('، ') : 'ندارد';
-
-      const payload = {
-          trackingCode: randomCode,
-          formData: formData,
+  // 🔴🔴🔴 ریدارکت اجباری برای حل مشکل 🔴🔴🔴
+  const handleProceedToCheckout = () => {
+      const orderPayload = {
+          selectedBoxId: selectedBoxType.id,
+          subscription,
+          hasTampon,
+          tamponCount,
+          extras,
+          formData, 
           totalPrice: calculateTotal(),
-          orderDetails: {
-              boxName: selectedBoxType.name, // نام باکس درست ارسال می‌شود
-              subscription: subscription,
-              pads: `${dayPads} روزانه / ${nightPads} شبانه (${padBrand})`,
-              tampons: hasTampon ? `${tamponCount} عدد (${tamponBrand})` : 'ندارد',
-              extras: extrasText
-          }
+          lang: lang 
       };
 
-      try {
-          // اتصال به API پرداخت (که به تلگرام وصل است)
-          const res = await fetch('/api/checkout', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-          });
-
-          if (res.ok) {
-              setStep(4);
-          } else {
-              alert(lang === 'FA' ? "خطا در ثبت سفارش." : "Order failed.");
-          }
-      } catch (error) {
-          alert(lang === 'FA' ? "خطای شبکه." : "Network Error.");
-      }
+      // ۱. ذخیره اطلاعات
+      localStorage.setItem('vela-temp-order', JSON.stringify(orderPayload));
+      
+      // ۲. ریدارکت سخت (Hard Redirect) که حتما کار می‌کند
+      window.location.href = '/checkout';
   };
 
-  // --- Custom Calendar UI ---
   const [currentCalDate, setCurrentCalDate] = useState(new Date());
 
   const renderCalendar = () => {
@@ -314,14 +279,12 @@ function BoxBuilderContent() {
     <div className="min-h-screen bg-[#F9F7F2] py-8 px-4 pt-28 pb-32" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-4xl mx-auto">
         
-        {/* Progress Steps */}
         <div className="flex justify-center gap-4 mb-10">
-            {[1, 2, 3, 4].map(num => (
+            {[1, 2].map(num => (
                 <div key={num} className={`h-2 rounded-full transition-all duration-500 ${step >= num ? 'w-12 bg-[#1A2A3A]' : 'w-4 bg-gray-300'}`}></div>
             ))}
         </div>
 
-        {/* --- STEP 1: CALENDAR --- */}
         {step === 1 && (
             <div className="animate-fade-in max-w-lg mx-auto">
                 <div className="text-center mb-8">
@@ -347,12 +310,10 @@ function BoxBuilderContent() {
             </div>
         )}
 
-        {/* --- STEP 2: CUSTOMIZATION --- */}
         {step === 2 && (
             <div className="animate-fade-in">
                 <h2 className="text-3xl font-serif font-bold text-[#1A2A3A] mb-8 text-center">{t.step2Title}</h2>
 
-                {/* Subscription */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
                     {[1, 3, 6].map((m) => (
                         <div key={m} onClick={() => setSubscription(m)} className={`cursor-pointer rounded-2xl p-4 text-center border-2 transition relative ${subscription === m ? 'border-[#D4AF37] bg-white shadow-xl scale-105 z-10' : 'border-gray-200 bg-[#F9F7F2] opacity-80'}`}>
@@ -362,7 +323,6 @@ function BoxBuilderContent() {
                     ))}
                 </div>
 
-                {/* Eco Card */}
                 <div onClick={() => setIsEco(!isEco)} className={`cursor-pointer rounded-3xl p-6 mb-8 flex items-center gap-4 transition-all duration-300 border-2 ${isEco ? 'bg-[#1A2A3A] text-white border-[#1A2A3A]' : 'bg-white border-green-100'}`}>
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isEco ? 'bg-green-500 text-white' : 'bg-green-100 text-green-600'}`}><Leaf/></div>
                     <div className="flex-1">
@@ -372,7 +332,6 @@ function BoxBuilderContent() {
                     {isEco && <Check className="text-[#D4AF37]" size={28}/>}
                 </div>
 
-                {/* Pads Config */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-6">
                     <h4 className="font-bold text-[#1A2A3A] mb-4 flex items-center gap-2"><Package size={18}/> {t.padConfig}</h4>
                     <div className="flex gap-2 mb-6">
@@ -400,7 +359,6 @@ function BoxBuilderContent() {
                     </div>
                 </div>
 
-                {/* Tampons */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-6">
                     <div className="flex justify-between items-center mb-4">
                          <h4 className="font-bold text-[#1A2A3A] flex items-center gap-2"><Sliders size={18}/> {t.tamponConfig}</h4>
@@ -423,7 +381,6 @@ function BoxBuilderContent() {
                     )}
                 </div>
 
-                {/* Extras */}
                 <h4 className="font-bold text-[#1A2A3A] mb-4 px-2">{t.addOns}</h4>
                 <div className="grid grid-cols-2 gap-4 mb-24">
                     {[
@@ -446,43 +403,6 @@ function BoxBuilderContent() {
             </div>
         )}
 
-        {/* --- STEP 3: ADDRESS --- */}
-        {step === 3 && (
-            <div className="animate-fade-in">
-                <h2 className="text-3xl font-serif font-bold text-[#1A2A3A] mb-8 text-center">{t.step3Title}</h2>
-                <div className="bg-white p-6 rounded-[2rem] shadow-xl mb-8">
-                    <h3 className="font-bold mb-4 flex items-center gap-2"><Info size={18}/> {t.reviewOrder}</h3>
-                    <div className="space-y-3 text-sm text-gray-600">
-                        <div className="flex justify-between"><span>Plan</span> <span className="font-bold text-[#1A2A3A]">{subscription} Month</span></div>
-                        <div className="flex justify-between"><span>Box</span> <span className="font-bold text-[#D4AF37]">{selectedBoxType.name}</span></div>
-                        <div className="flex justify-between"><span>Pads</span> <span className="font-bold text-[#1A2A3A]">{dayPads} D / {nightPads} N ({padBrand})</span></div>
-                        <div className="flex justify-between"><span>Total</span> <span className="font-bold text-[#D4AF37] text-lg">{calculateTotal()} {t.currency}</span></div>
-                    </div>
-                </div>
-                <div className="space-y-4">
-                    <input type="text" placeholder={t.formName} className="w-full p-4 rounded-xl border focus:border-[#D4AF37] outline-none" onChange={(e) => setFormData({...formData, name: e.target.value})}/>
-                    <input type="tel" placeholder={t.formPhone} className="w-full p-4 rounded-xl border focus:border-[#D4AF37] outline-none" onChange={(e) => setFormData({...formData, phone: e.target.value})}/>
-                    <textarea placeholder={t.formAddr} className="w-full p-4 rounded-xl border focus:border-[#D4AF37] outline-none" rows={3} onChange={(e) => setFormData({...formData, address: e.target.value})}/>
-                    <button onClick={handlePayment} className="w-full bg-[#1A2A3A] text-white py-4 rounded-xl font-bold hover:bg-[#D4AF37] transition shadow-lg mt-4">{t.confirm}</button>
-                </div>
-            </div>
-        )}
-
-        {/* --- STEP 4: SUCCESS --- */}
-        {step === 4 && (
-            <div className="text-center animate-scale-in py-10">
-                <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"><Check size={48}/></div>
-                <h2 className="text-4xl font-serif font-bold text-[#1A2A3A] mb-4">{t.successTitle}</h2>
-                <div className="bg-white p-6 rounded-2xl shadow-md inline-block border-2 border-dashed border-gray-300 mb-10">
-                    <span className="block text-sm text-gray-400 uppercase tracking-widest mb-1">{t.trackLabel}</span>
-                    <span className="text-3xl font-mono font-bold text-[#1A2A3A] tracking-wider">{trackingCode}</span>
-                </div>
-                <br/>
-                <Link href="/" className="inline-block px-8 py-3 bg-[#1A2A3A] text-white rounded-xl font-bold">{t.homeBtn}</Link>
-            </div>
-        )}
-
-        {/* Sticky Footer (Step 2 Only) */}
         {step === 2 && (
             <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 p-4 z-50 animate-slide-up">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
@@ -490,7 +410,7 @@ function BoxBuilderContent() {
                         <span className="text-xs text-gray-500 block">{t.priceSummary} ({selectedBoxType.name})</span>
                         <span className="text-2xl font-bold text-[#1A2A3A]">{calculateTotal()} {t.currency}</span>
                     </div>
-                    <button onClick={() => setStep(3)} className="bg-[#1A2A3A] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#D4AF37] transition shadow-lg flex items-center gap-2">
+                    <button onClick={handleProceedToCheckout} className="bg-[#1A2A3A] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#D4AF37] transition shadow-lg flex items-center gap-2">
                         {t.confirm} {isRTL ? <ArrowLeft size={18}/> : <ArrowRight size={18}/>}
                     </button>
                 </div>
