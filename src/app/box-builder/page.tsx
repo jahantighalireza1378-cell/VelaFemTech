@@ -2,13 +2,12 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation'; 
-import Link from 'next/link';
 import { 
-  ArrowLeft, ArrowRight, Check, Calendar as CalendarIcon, Package, Sliders, 
-  Heart, Coffee, Thermometer, Gift, Sun, Moon, Leaf, Info, ChevronLeft, ChevronRight, Minus, Plus 
+  ArrowLeft, ArrowRight, Check, Package, Sliders, 
+  Heart, Coffee, Thermometer, Gift, Sun, Moon, Leaf, ChevronLeft, ChevronRight, Minus, Plus 
 } from 'lucide-react';
 
-// --- Utility: Simple Jalaali Converter ---
+// --- Utility: تبدیل تاریخ شمسی و میلادی (کامل) ---
 const jalaali = {
   gregorianToJalali: (gy: number, gm: number, gd: number) => {
     const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -50,107 +49,113 @@ const jalaali = {
   monthNames: ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
 };
 
-// --- Box Configuration Data ---
+// --- تنظیمات باکس‌ها و لیمیت‌ها ---
 const BOX_DATA: any = {
-  essential: { id: 'essential', name: 'Essential', basePrice: 380, points: 30 },
-  care: { id: 'care', name: 'Care', basePrice: 680, points: 50 },
-  bliss: { id: 'bliss', name: 'Bliss', basePrice: 1350, points: 100 },
+  essential: { id: 'essential', name: 'Essential', basePrice: 380, points: 30, maxPads: 15, defaultDay: 10, defaultNight: 5 },
+  care: { id: 'care', name: 'Care', basePrice: 680, points: 50, maxPads: 25, defaultDay: 15, defaultNight: 10 },
+  bliss: { id: 'bliss', name: 'Bliss', basePrice: 1350, points: 100, maxPads: 35, defaultDay: 20, defaultNight: 15 },
 };
 
 function BoxBuilderContent() {
-  const [step, setStep] = useState(1);
   const [lang, setLang] = useState('EN');
-  
+  const [step, setStep] = useState(1);
   const searchParams = useSearchParams();
   const typeParam = searchParams.get('type');
-  
   const selectedBoxType = BOX_DATA[typeParam || 'care'] || BOX_DATA['care'];
 
-  // Data States
+  // State
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [subscription, setSubscription] = useState(1);
   const [isEco, setIsEco] = useState(false);
   
-  // Customization
+  // PADS STATE
   const [padBrand, setPadBrand] = useState('Kotex');
-  const [dayPads, setDayPads] = useState(10);
-  const [nightPads, setNightPads] = useState(5);
-  
+  const [dayPads, setDayPads] = useState(selectedBoxType.defaultDay);
+  const [nightPads, setNightPads] = useState(selectedBoxType.defaultNight);
+
+  // RESET PADS ON BOX CHANGE
+  useEffect(() => {
+    setDayPads(selectedBoxType.defaultDay);
+    setNightPads(selectedBoxType.defaultNight);
+  }, [selectedBoxType]);
+
   const [hasTampon, setHasTampon] = useState(false);
   const [tamponBrand, setTamponBrand] = useState('Tampax');
   const [tamponCount, setTamponCount] = useState(10);
-  
   const [extras, setExtras] = useState({ chocolate: 0, tea: 0, heatPatch: 0, hotWaterBottle: 0 });
   const [formData, setFormData] = useState({ name: '', phone: '', address: '', zip: '' });
-
-  const content: any = {
-    EN: {
-      next: "Next Step", back: "Back", confirm: "Proceed to Checkout", currency: "TL",
-      step1Title: "Cycle Tracking", step1Desc: "Select your last period start date.",
-      calcNext: "Next Period:", calcShip: "Shipping Date:",
-      step2Title: `Customize ${selectedBoxType.name} Box`, 
-      subTitle: "Subscription Plan", discount: "OFF",
-      ecoTitle: "Eco-Friendly", ecoDesc: `Get +${selectedBoxType.points} Wallet Points!`,
-      padConfig: "Pad Selection", brand: "Brand", day: "Day Pads", night: "Night Pads",
-      tamponConfig: "Tampons", enableTampon: "Add Tampons", count: "Qty",
-      addOns: "Treats & Extras",
-      exChoco: "Chocolate", exTea: "Herbal Tea", exPatch: "Heat Patch", exBottle: "Water Bottle",
-      priceSummary: "Total", reviewOrder: "Order Summary",
-      step3Title: "Shipping", formName: "Full Name", formPhone: "Phone", formAddr: "Address", formZip: "Zip Code",
-      successTitle: "Success!", successDesc: "Your order is confirmed.", trackLabel: "Tracking ID", homeBtn: "Home"
-    },
-    FA: {
-      next: "مرحله بعد", back: "بازگشت", confirm: "تایید و پرداخت", currency: "لیر",
-      step1Title: "تقویم قاعدگی", step1Desc: "تاریخ شروع آخرین پریود خود را انتخاب کنید.",
-      calcNext: "پریود بعدی:", calcShip: "زمان ارسال (۵ روز قبل):",
-      step2Title: `شخصی‌سازی باکس ${selectedBoxType.name}`, 
-      subTitle: "طرح اشتراک", discount: "تخفیف",
-      ecoTitle: "بسته‌بندی اکو", ecoDesc: `دریافت ${selectedBoxType.points} امتیاز کیف پول!`,
-      padConfig: "انتخاب نوار بهداشتی", brand: "برند", day: "پد روزانه", night: "پد شبانه",
-      tamponConfig: "تامپون", enableTampon: "افزودن تامپون", count: "تعداد",
-      addOns: "اقلام هیجان‌انگیز",
-      exChoco: "شکلات دست‌ساز", exTea: "دمنوش آرامش", exPatch: "چسب ضد درد", exBottle: "کیسه آب گرم",
-      priceSummary: "مبلغ نهایی", reviewOrder: "خلاصه سفارش",
-      step3Title: "اطلاعات ارسال", formName: "نام کامل", formPhone: "شماره تماس", formAddr: "آدرس دقیق", formZip: "کد پستی",
-      successTitle: "سفارش ثبت شد", successDesc: "بسته شما به زودی ارسال می‌شود.", trackLabel: "کد رهگیری", homeBtn: "بازگشت به خانه"
-    },
-    TR: {
-       next: "İleri", back: "Geri", confirm: "Ödeme Yap", currency: "TL",
-       step1Title: "Döngü Takibi", step1Desc: "Son adet tarihini seçin.",
-       calcNext: "Sonraki Adet:", calcShip: "Kargo Tarihi:",
-       step2Title: `${selectedBoxType.name} Özelleştir`, subTitle: "Abonelik", discount: "İndirim",
-       ecoTitle: "Eko Paket", ecoDesc: `+${selectedBoxType.points} Puan Kazan!`,
-       padConfig: "Ped Seçimi", brand: "Marka", day: "Gündüz", night: "Gece",
-       tamponConfig: "Tampon", enableTampon: "Ekle", count: "Adet",
-       addOns: "Ekstralar", exChoco: "Çikolata", exTea: "Çay", exPatch: "Isı Bandı", exBottle: "Su Torbası",
-       priceSummary: "Toplam", reviewOrder: "Özet",
-       step3Title: "Teslimat", formName: "İsim", formPhone: "Tel", formAddr: "Adres", formZip: "Posta Kodu",
-       successTitle: "Başarılı!", successDesc: "Siparişiniz alındı.", trackLabel: "Takip No", homeBtn: "Ana Sayfa"
-    },
-    RU: {
-       next: "Далее", back: "Назад", confirm: "Оплатить", currency: "TL",
-       step1Title: "Календарь", step1Desc: "Дата начала цикла.",
-       calcNext: "След. цикл:", calcShip: "Дата доставки:",
-       step2Title: `Настройка ${selectedBoxType.name}`, subTitle: "Подписка", discount: "Скидка",
-       ecoTitle: "Эко", ecoDesc: `+${selectedBoxType.points} баллов!`,
-       padConfig: "Прокладки", brand: "Бренд", day: "Дневные", night: "Ночные",
-       tamponConfig: "Тампоны", enableTampon: "Добавить", count: "Кол-во",
-       addOns: "Дополнения", exChoco: "Шоколад", exTea: "Чай", exPatch: "Пластырь", exBottle: "Грелка",
-       priceSummary: "Итого", reviewOrder: "Обзор",
-       step3Title: "Доставка", formName: "Имя", formPhone: "Телефон", formAddr: "Адрес", formZip: "Индекс",
-       successTitle: "Успешно!", successDesc: "Заказ принят.", trackLabel: "Трек-код", homeBtn: "Домой"
-    }
-  };
 
   useEffect(() => {
     const savedLang = localStorage.getItem('vela-lang');
     if (savedLang) setLang(savedLang);
-    window.addEventListener('vela-language-change', () => {
+    
+    // لیسنر تغییر زبان
+    const handleLangChange = () => {
         const newLang = localStorage.getItem('vela-lang');
         if (newLang) setLang(newLang);
-    });
+    };
+    window.addEventListener('vela-language-change', handleLangChange);
+    return () => window.removeEventListener('vela-language-change', handleLangChange);
   }, []);
 
+  const content: any = {
+    EN: { 
+        next: "Next Step", confirm: "Proceed to Checkout", currency: "TL", 
+        padConfig: "Pad Selection", day: "Day Pads", night: "Night Pads", 
+        limitMsg: `Limit Reached: Max ${selectedBoxType.maxPads} pads.`, padsUsed: "Selected",
+        step1Title: "Cycle Tracking", step1Desc: "Select your last period start date.",
+        calcNext: "Next Period:", calcShip: "Shipping Date:",
+        step2Title: `Customize ${selectedBoxType.name} Box`, 
+        subTitle: "Subscription Plan", discount: "OFF",
+        ecoTitle: "Eco-Friendly", ecoDesc: `Get +${selectedBoxType.points} Wallet Points!`,
+        tamponConfig: "Tampons", enableTampon: "Add Tampons", count: "Qty",
+        addOns: "Treats & Extras",
+        exChoco: "Chocolate", exTea: "Herbal Tea", exPatch: "Heat Patch", exBottle: "Water Bottle",
+        priceSummary: "Total"
+    },
+    FA: { 
+        next: "مرحله بعد", confirm: "تایید و پرداخت", currency: "لیر", 
+        padConfig: "انتخاب نوار بهداشتی", day: "پد روزانه", night: "پد شبانه", 
+        limitMsg: `ظرفیت تکمیل شد: حداکثر ${selectedBoxType.maxPads} عدد.`, padsUsed: "انتخاب شده",
+        step1Title: "تقویم قاعدگی", step1Desc: "تاریخ شروع آخرین پریود خود را انتخاب کنید.",
+        calcNext: "پریود بعدی:", calcShip: "زمان ارسال (۵ روز قبل):",
+        step2Title: `شخصی‌سازی باکس ${selectedBoxType.name}`, 
+        subTitle: "طرح اشتراک", discount: "تخفیف",
+        ecoTitle: "بسته‌بندی اکو", ecoDesc: `دریافت ${selectedBoxType.points} امتیاز کیف پول!`,
+        tamponConfig: "تامپون", enableTampon: "افزودن تامپون", count: "تعداد",
+        addOns: "اقلام هیجان‌انگیز",
+        exChoco: "شکلات دست‌ساز", exTea: "دمنوش آرامش", exPatch: "چسب ضد درد", exBottle: "کیسه آب گرم",
+        priceSummary: "مبلغ نهایی"
+    },
+    TR: { 
+        next: "İleri", confirm: "Ödeme Yap", currency: "TL", 
+        padConfig: "Ped Seçimi", day: "Gündüz", night: "Gece", 
+        limitMsg: `Limit Doldu: Maks ${selectedBoxType.maxPads} ped.`, padsUsed: "Seçilen",
+        step1Title: "Döngü Takibi", step1Desc: "Son adet tarihini seçin.",
+        calcNext: "Sonraki Adet:", calcShip: "Kargo Tarihi:",
+        step2Title: `${selectedBoxType.name} Özelleştir`, 
+        subTitle: "Abonelik", discount: "İndirim",
+        ecoTitle: "Eko Paket", ecoDesc: `+${selectedBoxType.points} Puan Kazan!`,
+        tamponConfig: "Tampon", enableTampon: "Ekle", count: "Adet",
+        addOns: "Ekstralar",
+        exChoco: "Çikolata", exTea: "Çay", exPatch: "Isı Bandı", exBottle: "Su Torbası",
+        priceSummary: "Toplam"
+    },
+    RU: { 
+        next: "Далее", confirm: "Оплатить", currency: "TL", 
+        padConfig: "Прокладки", day: "Дневные", night: "Ночные", 
+        limitMsg: `Лимит исчерпан: Макс ${selectedBoxType.maxPads} шт.`, padsUsed: "Выбрано",
+        step1Title: "Календарь", step1Desc: "Дата начала цикла.",
+        calcNext: "След. цикл:", calcShip: "Дата доставки:",
+        step2Title: `Настройка ${selectedBoxType.name}`, 
+        subTitle: "Подписка", discount: "Скидка",
+        ecoTitle: "Эко", ecoDesc: `+${selectedBoxType.points} баллов!`,
+        tamponConfig: "Тампоны", enableTampon: "Добавить", count: "Кол-во",
+        addOns: "Дополнения",
+        exChoco: "Шоколад", exTea: "Чай", exPatch: "Пластырь", exBottle: "Грелка",
+        priceSummary: "Итого"
+    }
+  };
   const t = content[lang] || content['EN'];
   const isRTL = lang === 'FA';
 
@@ -158,11 +163,20 @@ function BoxBuilderContent() {
       let total = selectedBoxType.basePrice; 
       if (hasTampon) total += (tamponCount * 5);
       total += (extras.chocolate * 80) + (extras.tea * 60) + (extras.heatPatch * 40) + (extras.hotWaterBottle * 150);
-      
       total = total * subscription;
       if (subscription === 3) total = total * 0.95;
       if (subscription === 6) total = total * 0.90;
       return Math.round(total);
+  };
+
+  const handleProceedToCheckout = () => {
+      const orderPayload = {
+          selectedBoxId: selectedBoxType.id,
+          subscription, hasTampon, tamponCount, extras, formData, 
+          totalPrice: calculateTotal(), lang: lang, dayPads, nightPads
+      };
+      localStorage.setItem('vela-temp-order', JSON.stringify(orderPayload));
+      window.location.href = '/checkout';
   };
 
   const getDates = () => {
@@ -186,26 +200,18 @@ function BoxBuilderContent() {
       };
   };
 
-  // 🔴🔴🔴 ریدارکت اجباری برای حل مشکل 🔴🔴🔴
-  const handleProceedToCheckout = () => {
-      const orderPayload = {
-          selectedBoxId: selectedBoxType.id,
-          subscription,
-          hasTampon,
-          tamponCount,
-          extras,
-          formData, 
-          totalPrice: calculateTotal(),
-          lang: lang 
-      };
+  // 🔴🔴🔴 LOGIC FIX FOR PADS 🔴🔴🔴
+  const totalSelectedPads = dayPads + nightPads;
+  const maxPads = selectedBoxType.maxPads;
+  const isMaxReached = totalSelectedPads >= maxPads;
 
-      // ۱. ذخیره اطلاعات
-      localStorage.setItem('vela-temp-order', JSON.stringify(orderPayload));
-      
-      // ۲. ریدارکت سخت (Hard Redirect) که حتما کار می‌کند
-      window.location.href = '/checkout';
-  };
+  const increaseDay = () => { if (!isMaxReached) setDayPads(dayPads + 1); };
+  const decreaseDay = () => { if (dayPads > 0) setDayPads(dayPads - 1); };
+  
+  const increaseNight = () => { if (!isMaxReached) setNightPads(nightPads + 1); };
+  const decreaseNight = () => { if (nightPads > 0) setNightPads(nightPads - 1); };
 
+  // --- Calendar Logic ---
   const [currentCalDate, setCurrentCalDate] = useState(new Date());
 
   const renderCalendar = () => {
@@ -279,6 +285,7 @@ function BoxBuilderContent() {
     <div className="min-h-screen bg-[#F9F7F2] py-8 px-4 pt-28 pb-32" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="max-w-4xl mx-auto">
         
+        {/* Progress Dots */}
         <div className="flex justify-center gap-4 mb-10">
             {[1, 2].map(num => (
                 <div key={num} className={`h-2 rounded-full transition-all duration-500 ${step >= num ? 'w-12 bg-[#1A2A3A]' : 'w-4 bg-gray-300'}`}></div>
@@ -314,6 +321,7 @@ function BoxBuilderContent() {
             <div className="animate-fade-in">
                 <h2 className="text-3xl font-serif font-bold text-[#1A2A3A] mb-8 text-center">{t.step2Title}</h2>
 
+                {/* Subscription */}
                 <div className="grid grid-cols-3 gap-4 mb-8">
                     {[1, 3, 6].map((m) => (
                         <div key={m} onClick={() => setSubscription(m)} className={`cursor-pointer rounded-2xl p-4 text-center border-2 transition relative ${subscription === m ? 'border-[#D4AF37] bg-white shadow-xl scale-105 z-10' : 'border-gray-200 bg-[#F9F7F2] opacity-80'}`}>
@@ -323,6 +331,7 @@ function BoxBuilderContent() {
                     ))}
                 </div>
 
+                {/* Eco Option */}
                 <div onClick={() => setIsEco(!isEco)} className={`cursor-pointer rounded-3xl p-6 mb-8 flex items-center gap-4 transition-all duration-300 border-2 ${isEco ? 'bg-[#1A2A3A] text-white border-[#1A2A3A]' : 'bg-white border-green-100'}`}>
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isEco ? 'bg-green-500 text-white' : 'bg-green-100 text-green-600'}`}><Leaf/></div>
                     <div className="flex-1">
@@ -332,33 +341,58 @@ function BoxBuilderContent() {
                     {isEco && <Check className="text-[#D4AF37]" size={28}/>}
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-6">
-                    <h4 className="font-bold text-[#1A2A3A] mb-4 flex items-center gap-2"><Package size={18}/> {t.padConfig}</h4>
+                {/* Pad Control Section */}
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-6 relative">
+                    <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-bold text-[#1A2A3A] flex items-center gap-2"><Package size={18}/> {t.padConfig}</h4>
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full ${isMaxReached ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
+                            {t.padsUsed}: {totalSelectedPads} / {maxPads}
+                        </span>
+                    </div>
+
                     <div className="flex gap-2 mb-6">
                         {['Kotex', 'Orkid', 'Molped'].map(b => (
                             <button key={b} onClick={() => setPadBrand(b)} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${padBrand === b ? 'bg-[#1A2A3A] text-white border-[#1A2A3A]' : 'bg-white text-gray-500 border-gray-200'}`}>{b}</button>
                         ))}
                     </div>
+
                     <div className="space-y-4">
+                        {/* Day Pads */}
                         <div className="flex justify-between items-center bg-[#F9F7F2] p-4 rounded-xl">
-                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-orange-500 shadow-sm"><Sun size={20}/></div><span className="font-bold text-[#1A2A3A] text-sm">{t.day}</span></div>
+                            <span className="font-bold text-[#1A2A3A] text-sm flex items-center gap-2"><Sun size={18}/> {t.day}</span>
                             <div className="flex items-center gap-3">
-                                <button onClick={() => setDayPads(Math.max(0, dayPads - 1))} className="w-8 h-8 rounded-full bg-white border flex items-center justify-center hover:bg-gray-100"><Minus size={16}/></button>
+                                <button onClick={decreaseDay} className="w-8 h-8 rounded-full bg-white border flex items-center justify-center hover:bg-gray-100"><Minus size={16}/></button>
                                 <span className="font-bold w-6 text-center text-lg">{dayPads}</span>
-                                <button onClick={() => setDayPads(dayPads + 1)} className="w-8 h-8 rounded-full bg-[#1A2A3A] text-white flex items-center justify-center hover:bg-[#D4AF37]"><Plus size={16}/></button>
+                                <button 
+                                    onClick={increaseDay} 
+                                    disabled={isMaxReached} 
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isMaxReached ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#1A2A3A] text-white hover:bg-[#D4AF37]'}`}
+                                >
+                                    <Plus size={16}/>
+                                </button>
                             </div>
                         </div>
+                        
+                        {/* Night Pads */}
                         <div className="flex justify-between items-center bg-[#1A2A3A]/5 p-4 rounded-xl">
-                            <div className="flex items-center gap-3"><div className="w-10 h-10 bg-[#1A2A3A] rounded-full flex items-center justify-center text-indigo-300 shadow-sm"><Moon size={20}/></div><span className="font-bold text-[#1A2A3A] text-sm">{t.night}</span></div>
+                            <span className="font-bold text-[#1A2A3A] text-sm flex items-center gap-2"><Moon size={18}/> {t.night}</span>
                             <div className="flex items-center gap-3">
-                                <button onClick={() => setNightPads(Math.max(0, nightPads - 1))} className="w-8 h-8 rounded-full bg-white border flex items-center justify-center hover:bg-gray-100"><Minus size={16}/></button>
+                                <button onClick={decreaseNight} className="w-8 h-8 rounded-full bg-white border flex items-center justify-center hover:bg-gray-100"><Minus size={16}/></button>
                                 <span className="font-bold w-6 text-center text-lg">{nightPads}</span>
-                                <button onClick={() => setNightPads(nightPads + 1)} className="w-8 h-8 rounded-full bg-[#1A2A3A] text-white flex items-center justify-center hover:bg-[#D4AF37]"><Plus size={16}/></button>
+                                <button 
+                                    onClick={increaseNight} 
+                                    disabled={isMaxReached} 
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isMaxReached ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#1A2A3A] text-white hover:bg-[#D4AF37]'}`}
+                                >
+                                    <Plus size={16}/>
+                                </button>
                             </div>
                         </div>
                     </div>
+                    {isMaxReached && <p className="text-red-500 text-xs text-center mt-2 font-bold animate-pulse">{t.limitMsg}</p>}
                 </div>
 
+                {/* Tampons */}
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-6">
                     <div className="flex justify-between items-center mb-4">
                          <h4 className="font-bold text-[#1A2A3A] flex items-center gap-2"><Sliders size={18}/> {t.tamponConfig}</h4>
@@ -381,6 +415,7 @@ function BoxBuilderContent() {
                     )}
                 </div>
 
+                {/* Extras */}
                 <h4 className="font-bold text-[#1A2A3A] mb-4 px-2">{t.addOns}</h4>
                 <div className="grid grid-cols-2 gap-4 mb-24">
                     {[
@@ -422,7 +457,6 @@ function BoxBuilderContent() {
   );
 }
 
-// Wrapper to prevent hydration mismatch with useSearchParams
 export default function BoxBuilder() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
