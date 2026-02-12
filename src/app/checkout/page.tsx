@@ -138,7 +138,7 @@ export default function CheckoutPage() {
     }
 
     try {
-        await fetch('/api/checkout', {
+        const res = await fetch('/api/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -146,17 +146,31 @@ export default function CheckoutPage() {
                 formData, 
                 paidAmount: finalPayable,
                 realPrice: exactTotal,
-                status: 'pending_payment'
+                status: 'pending_payment',
+                // ارسال مقادیر پد برای اینکه در API در دسترس باشند
+                dayPads: orderData.dayPads,
+                nightPads: orderData.nightPads,
+                tamponCount: orderData.tamponCount,
+                hasTampon: orderData.hasTampon
             }),
         });
+
+        // 🔴 بررسی اینکه آیا سرور با موفقیت ذخیره کرد یا خیر
+        if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.error || 'Server Save Failed');
+        }
+
         localStorage.removeItem('vela-temp-order');
         
         setTimeout(() => {
             window.location.href = link;
         }, 1500);
 
-    } catch (e) {
-        alert('Server Error.');
+    } catch (e: any) {
+        console.error("Payment Error:", e);
+        // نمایش خطای واقعی به کاربر برای دیباگ کردن
+        alert(`خطا در ثبت سفارش: ${e.message}`);
         setLoading(false);
     }
   };
