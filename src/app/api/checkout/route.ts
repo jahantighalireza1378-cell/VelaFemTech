@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// ایجاد کلاینت مستقیم در اینجا برای اطمینان از کارکرد
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -13,7 +12,7 @@ export async function POST(req: Request) {
 
     console.log("🚀 New Order Request for:", formData.name);
 
-    // ۱. ساخت آبجکت جزئیات برای ذخیره تمیز در دیتابیس
+    // ۱. ساخت آبجکت جزئیات
     const orderDetailsJson = {
       box_id: selectedBoxId,
       subscription: subscription,
@@ -40,36 +39,33 @@ export async function POST(req: Request) {
       .select()
       .single();
 
-    if (dbError) {
-        console.error("❌ Supabase Error:", dbError.message);
-        // ادامه می‌دهیم تا شاید تلگرام کار کند، اما ارور را ثبت می‌کنیم
-    } else {
-        console.log("✅ Saved to DB:", orderData?.id);
-    }
-
-    // ۳. ارسال به تلگرام
+    // ۳. ارسال به تلگرام (همراه با گزارش خطای احتمالی)
     const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
     if (telegramToken && chatId) {
+        // اگر ارور دیتابیس داشتیم، متنش را می‌گیریم
+        const dbStatusMsg = dbError 
+            ? `❌ <b>DATABASE ERROR:</b>\n<pre>${JSON.stringify(dbError.message, null, 2)}</pre>` 
+            : `✅ <b>Saved to DB:</b> <code>${orderData?.id}</code>`;
+
         const message = `
 📦 <b>سفارش جدید (${selectedBoxId})</b>
 --------------------------------
 👤 <b>مشتری:</b> ${formData.name}
 📞 <b>تلفن:</b> ${formData.phone}
-💰 <b>مبلغ پرداختی:</b> ${paidAmount} TL
+💰 <b>مبلغ:</b> ${paidAmount} TL
 📍 <b>آدرس:</b> ${formData.address}
 
 📝 <b>جزئیات:</b>
-- اشتراک: ${subscription} ماهه
-- پدها: ${dayPads || 0} روز / ${nightPads || 0} شب
+- پد: ${dayPads || 0} روز / ${nightPads || 0} شب
 - تامپون: ${hasTampon ? tamponCount : 'ندارد'}
-- اکسترا: ${JSON.stringify(extras)}
+- اکسترا: ${extras}
 
-${orderData ? `🆔 Order ID: <code>${orderData.id}</code>` : '⚠️ هشدار: در دیتابیس ذخیره نشد!'}
+${dbStatusMsg}
         `;
 
-        const tgRes = await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -78,15 +74,12 @@ ${orderData ? `🆔 Order ID: <code>${orderData.id}</code>` : '⚠️ هشدار
                 parse_mode: 'HTML'
             })
         });
-        
-        if (!tgRes.ok) {
-            const tgErr = await tgRes.text();
-            console.error("❌ Telegram Error:", tgErr);
-        } else {
-            console.log("✅ Telegram Sent");
-        }
-    } else {
-        console.error("❌ Missing Telegram Env Vars");
+    }
+
+    // اگر دیتابیس ارور داشت، به فرانت‌اند هم میگوییم که الرت بدهد
+    if (dbError) {
+        console.error("Supabase Error:", dbError);
+        return NextResponse.json({ success: false, error: dbError.message }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, orderId: orderData?.id });
